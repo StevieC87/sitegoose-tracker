@@ -1,0 +1,372 @@
+[
+  {
+    "version": "1.0.0",
+    "integrity": "sha384-xOV5eIUW+Qn6IFrRKDW1M6cbKTF1gze+SJEB1/0a7/y6Qf2VW5uPon66cJv1frfC",
+    "released_at": "2026-10-12T12:49:08Z"
+  },
+  {
+    "version": "1.0.1",
+    "integrity": "sha384-sXMc4S7bXWtFUtKvgJDp+ZZAvfyK2k4fsfIaVZdp2FbznhtmtwyFKBAOpmowYat4",
+    "released_at": "2026-10-12T13:57:45.143Z"
+  },
+  {
+    "version": "1.0.2",
+    "integrity": "sha384-NqAyrTVHwNtk13rvMCu5CvE0w3bMgbfyyOfsx72J5dpNitI1cRJhUgPvddv23uKj",
+    "released_at": "2026-10-12T14:05:36.101Z"
+  },
+  {
+    "version": "1.0.3",
+    "integrity": "sha384-42ydEMSQVp7HLJVDbFJYLspymw5bt6XkglghCUjxm2NIUi24GBlAPmiy3VF9l4Ix",
+    "released_at": "2026-10-12T14:36:02.692Z"
+  },
+  {
+    "version": "1.0.4",
+    "integrity": "sha384-MhxtDFUEWNpSrDZYdIM2DeqE5bK9NmNY7Zkxqd0+zNoE25V6GVgtT+CB3qFfpe9i",
+    "released_at": "2026-10-12T14:39:33.375Z"
+  },
+  {
+    "version": "1.0.5",
+    "integrity": "sha384-MhxtDFUEWNpSrDZYdIM2DeqE5bK9NmNY7Zkxqd0+zNoE25V6GVgtT+CB3qFfpe9i",
+    "released_at": "2026-10-12T15:08:53.466Z"
+  },
+  {
+    "version": "1.0.6",
+    "integrity": "sha384-RM8yQKRyXTbb7WJ4LRempQQet+3g9+qXGRtoKOOMnx85ZFIo92zwKxstLcMGI/E/",
+    "released_at": "2026-10-12T15:12:40.367Z"
+  },
+  {
+    "version": "1.0.7",
+    "integrity": "sha384-JEKkyegyhMR1Dr7/NsrGRNrjTSWMRAnAYu+2kvgnEcHanv7FBevOusL0rF0T2Az/",
+    "released_at": "2026-10-13T09:15:11.447Z"
+  },
+  {
+    "version": "1.0.8",
+    "integrity": "sha384-GZloxFmhAZyTxf5/TnAd2ScrAakN8HghTRK+NOJEJ0r9yagiwtv9BJPjSVNoZPRc",
+    "released_at": "2026-10-13T10:22:39.676Z"
+  },
+  {
+    "version": "1.0.9",
+    "integrity": "sha384-kv9iE7sO87a5/GHviZ8Wj/4ydaXhFIhMEaAPtlhbq7pfN32womwDFjg2SWNq+17X",
+    "released_at": "2026-10-13T11:35:14.588Z"
+  },
+  {
+    "version": "1.0.10",
+    "integrity": "sha384-3UTQGlMFnuruoyxo4ME5p+RRoMevTENa5aPw1tU+98HjMkq1SLrIYvfimvNb7V0D",
+    "released_at": "2026-10-13T14:04:45.098Z"
+  },
+  {
+    "version": "1.0.11",
+    "integrity": "sha384-gwayIgW0Aq/NAJSUq7eryNj1rW68hp6Iol59qD+2NId3egBPpliFW+HsoM7T3JDE",
+    "released_at": "2026-10-13T19:20:53.078Z"
+  },
+  {
+    "version": "1.0.12",
+    "integrity": "sha384-LZUR0UO0mApDsJPt+7FnpZ26hZ31Sd9IxUmm9+PdTxn4PmkCbpjA5i3fBX6VIIcx",
+    "released_at": "2026-10-13T20:35:24.402Z"
+  },
+  {
+    "version": "1.0.13",
+    "integrity": "sha384-iRVSuPr2IGFRn/rpyTi/LaBZdv+SitB1iNUysKhXZzmIil+1Qv2LcRo6mhYX4g7I",
+    "released_at": "2026-10-13T21:50:47.752Z"
+  },
+  {
+    "version": "1.0.14",
+    "integrity": "sha384-IpaaH5HEV7zXIACKZEVFuVQRWVFT7tWnYVqfEem7qHtOBM3cbYD0cGhUW+cthlfa",
+    "released_at": "2026-10-13T21:53:50.874Z"
+  },
+  {
+    "version": "1.0.15",
+    "integrity": "sha384-LJzq6iKJKkzydw3KUf7MjjlfAd6E/dPtJbXmzuXetjYWx/BGyim5yWxVPb6FLKrD",
+    "released_at": "2026-10-14T08:56:59.407Z"
+  },
+  {
+    "version": "1.0.24",
+    "integrity": "sha384-tWtk1Cwrb6NP55rX7Ax0w07fjURHOsp9K4jKya1EA+H9x8moISQ5kz6yg5Uvoo3U",
+    "released_at": "2026-10-15T11:23:01.946Z"
+  },
+  {
+    "version": "1.0.25",
+    "integrity": "sha384-J+Fykal2n8we1RhRejoo6PeF342eQ6prqOnPJMp9x/CObsLAIFHcVa1vpwCTjX9G",
+    "released_at": "2026-10-15T11:47:21.568Z"
+  },
+  {
+    "version": "1.0.26",
+    "integrity": "sha384-XX7IbSKbcGZDLe1Kj4bor91nExMaCNp0IXAnaA+Satb0PJd41HMUNOUZvd7QQ4Pc",
+    "released_at": "2026-10-15T12:16:49.300Z"
+  },
+  {
+    "version": "1.0.27",
+    "integrity": "sha384-SpaSiFRZIqLds7VhmUbGuzuMJ5WTRVYN+iwFtv8kiYGli+ZXN1ur2qi9F1FXdMxA",
+    "released_at": "2026-10-15T20:11:11.535Z"
+  },
+  {
+    "version": "1.0.28",
+    "integrity": "sha384-SpaSiFRZIqLds7VhmUbGuzuMJ5WTRVYN+iwFtv8kiYGli+ZXN1ur2qi9F1FXdMxA",
+    "released_at": "2026-10-15T21:52:09.504Z"
+  },
+  {
+    "version": "1.0.29",
+    "integrity": "sha384-CWR/OU7nl+jN1jgh0VLk2nhVEGT2mgMCQ2UD+8V2KJSpuK5AtIuZWfkuaDe9qRI9",
+    "released_at": "2026-10-17T11:01:44.103Z"
+  },
+  {
+    "version": "1.0.30",
+    "integrity": "sha384-9Py3Be8+0/j7Y773o3BLQRVevupCfG8wJZZXQMifnJpIeNueeeUdrFoMLAm+z/kE",
+    "released_at": "2026-10-17T11:55:01.449Z"
+  },
+  {
+    "version": "1.0.31",
+    "integrity": "sha384-wPvGPGVOdHiBkcp+3wIZUJsVXoLuamRLP7Vk+DKT1NNz6wmzq4Re4B0vtfMYJ9j3",
+    "released_at": "2026-10-17T14:53:32.638Z"
+  },
+  {
+    "version": "1.0.32",
+    "integrity": "sha384-wPvGPGVOdHiBkcp+3wIZUJsVXoLuamRLP7Vk+DKT1NNz6wmzq4Re4B0vtfMYJ9j3",
+    "released_at": "2026-10-17T15:11:50.166Z"
+  },
+  {
+    "version": "1.0.33",
+    "integrity": "sha384-iK2zVCsgXQ8OkoSj8bKNesUAgmPtuqcx/bkQb2oMhvmU1P/SkBA2a2utuwbbDOlG",
+    "released_at": "2026-10-17T16:01:02.573Z"
+  },
+  {
+    "version": "1.0.34",
+    "integrity": "sha384-UsS6mbuF7o06eOyzUVuYGvrSNSOnaYu6ZbebqhEAUnt/4+KKhvpF/XuZR2i434Qi",
+    "released_at": "2026-10-17T18:21:19.328Z"
+  },
+  {
+    "version": "1.0.35",
+    "integrity": "sha384-bwYZqvXYxNPiv6tHfcM02qQw8v/5mPcVv08M7a7r+YJJZVQ9uOVYQQqo3/2iWKBv",
+    "released_at": "2026-10-17T19:03:46.257Z"
+  },
+  {
+    "version": "1.0.36",
+    "integrity": "sha384-Pu9+jS185zdDjSJqiJyZJ8i01aHfPp3rpSsBoxRBnXBdDtZ7LdF9zMpa0CqZV3sQ",
+    "released_at": "2026-10-18T08:35:15.444Z"
+  },
+  {
+    "version": "1.0.37",
+    "integrity": "sha384-pyTNhxgIJz8uf2ecyhdNAAc2NiDT0OVUkBrjs5GRZb4b9dkKJpHASZrRqtf7XUxS",
+    "released_at": "2026-10-18T10:30:35.331Z"
+  },
+  {
+    "version": "1.0.38",
+    "integrity": "sha384-TC8BqFYne8T8+8vNjOFlyW0QWA/1wPCorsQcrQM4JJbvYSkGynEpf2j3nzrtcW4b",
+    "released_at": "2026-10-18T14:08:02.379Z"
+  },
+  {
+    "version": "1.0.39",
+    "integrity": "sha384-kU2brUp6iklASm+cC6cXWSZ8z0/YpTX4QLqBz3r/b5UawP3AzlY3pIK3lOApz0Hk",
+    "released_at": "2026-10-18T19:47:15.101Z"
+  },
+  {
+    "version": "1.0.40",
+    "integrity": "sha384-CaUDMNnD7Jbe81whsOyAfUPcpxpvTwgYyDM4+FPjhfd8eriBtMrtqGewwODfWTrq",
+    "released_at": "2026-10-18T19:58:25.395Z"
+  },
+  {
+    "version": "1.0.41",
+    "integrity": "sha384-d3mZ8XYRAfnujooKf5LidYKi6uPXGqsvnUQQyGoFctOi5ElgCv2RZ6FYyuPt2EcS",
+    "released_at": "2026-10-18T20:17:07.898Z"
+  },
+  {
+    "version": "1.0.42",
+    "integrity": "sha384-713d14Vy1DEW6Vcq1/v0OZ6qNaGtNsuqL1u/9b94Thju/sZaNHwYNuU7lRH2E0+G",
+    "released_at": "2026-10-18T20:30:36.253Z"
+  },
+  {
+    "version": "1.0.43",
+    "integrity": "sha384-PwI2w4ykON9CrvpB+lp3aoa4P7I/yAC5xKQGGPDiyPOlNaMTeXuzuFGPrKSbp8pQ",
+    "released_at": "2026-10-18T21:00:24.434Z"
+  },
+  {
+    "version": "1.0.44",
+    "integrity": "sha384-F1UciuqAcWV299jNdPHjLBEdLik/H0o2R+0liz2bDrdgxPHoJEYaMz/q8MBh6uRW",
+    "released_at": "2026-10-18T21:08:12.196Z"
+  },
+  {
+    "version": "1.0.45",
+    "integrity": "sha384-sC6JvW2keR2+jrohWMwTmeiDqjFqCbq56D5lq/HWwcJRtY4suoKVZg+EL5en9yKb",
+    "released_at": "2026-10-18T21:08:20.769Z"
+  },
+  {
+    "version": "1.0.46",
+    "integrity": "sha384-B7qfN7wPRvLv4TY9r8aklOEdDgiIeAlRu8a09RmPolFgisvfJHFhbFf1sPJTPABp",
+    "released_at": "2026-10-18T21:29:47.400Z"
+  },
+  {
+    "version": "1.0.47",
+    "integrity": "sha384-aABtuZHtTQDxHuw4sG/CrhV86Qi/NhzXRHYprQa0L9fUAz6M4D/5POP8i13VCTop",
+    "released_at": "2026-10-18T21:51:37.246Z"
+  },
+  {
+    "version": "1.0.48",
+    "integrity": "sha384-rB/IEQRNaN8FP+oak3JRBrqeiQSwlYD/gY25avS8D8EklICa4VCV0XgW3d+nedXr",
+    "released_at": "2026-10-18T22:48:26.159Z"
+  },
+  {
+    "version": "1.0.49",
+    "integrity": "sha384-bUOmTDI3oaTmbxHUFdjCRtDlDzwhrTFsMqHEEP206fNrs7iMoPihUwQmxYW3lACj",
+    "released_at": "2026-10-19T16:22:49.092Z"
+  },
+  {
+    "version": "1.0.50",
+    "integrity": "sha384-LKTBmomNMpDwj8PDcyWGHlp8dAErEe6zeczROcgm+/8OIzW8BPdokmEoT2gJFZJh",
+    "released_at": "2026-10-19T17:06:34.672Z"
+  },
+  {
+    "version": "1.0.51",
+    "integrity": "sha384-7n1z7i5cS4z+kDv93gMajXNqq3IpMalq38GjAgekjt4AMedzCeZr4XDbzUpq3rQO",
+    "released_at": "2026-10-19T17:57:39.858Z"
+  },
+  {
+    "version": "1.0.52",
+    "integrity": "sha384-m4NiRvF7vr5CErzR5iu4MRD8qHeB8JP2pjA0T3Pacrp0ECCMPrnp4MasN1GY3+FK",
+    "released_at": "2026-10-19T19:31:26.920Z"
+  },
+  {
+    "version": "1.0.53",
+    "integrity": "sha384-aIw39GicS4PiXoJwf6ht4+kCDzL2CSdeRJM+28NgGvKLBsPgvkQuS3mrhDDbaL9W",
+    "released_at": "2026-10-19T19:39:17.517Z"
+  },
+  {
+    "version": "1.0.54",
+    "integrity": "sha384-UbTyNxvsMPRrr1HHZX3n/sDsxWnfKR83BCg+XgBYR+7jBiQCVJftfCDWNkshf6PT",
+    "released_at": "2026-10-19T20:12:11.062Z"
+  },
+  {
+    "version": "1.0.55",
+    "integrity": "sha384-xlmfeZ/1AbI5s4XatC9q4+pcbs9hoE61LJPN2n7QjE0fNbvkSpe6lT4V/OAXmnFH",
+    "released_at": "2026-10-19T20:45:33.009Z"
+  },
+  {
+    "version": "1.0.56",
+    "integrity": "sha384-UCLzL8uziDGeIGx2cq8KSRIg3VHTZVow183R3vWla5WRgsK+p1Dz34w4sNzAPU+K",
+    "released_at": "2026-10-20T10:06:52.433Z"
+  },
+  {
+    "version": "1.0.57",
+    "integrity": "sha384-52/ws07Gr7BOYB+AuGBikxgqIL/LEo3epIOdgTHyakpH4hz4Lb1WrDPvzunV8ryA",
+    "released_at": "2026-10-20T18:41:16.048Z"
+  },
+  {
+    "version": "1.0.58",
+    "integrity": "sha384-QwHq4Dc8vjagI/bSOK/TS1e+NdgZqKwu0bC0kefCQ5c5jkhnEdoVZqFjOUZt6lu/",
+    "released_at": "2026-10-21T13:55:23.551Z"
+  },
+  {
+    "version": "1.0.59",
+    "integrity": "sha384-Q8A2ov1ay4WR2a84sPRQkYZkG8gkjTSisraC6T/YL3rkg8t/BZdGsCij0XjB1F8g",
+    "released_at": "2026-10-22T19:22:35.471Z"
+  },
+  {
+    "version": "1.0.60",
+    "integrity": "sha384-Bpm8GOmG2fbdklEnq56g13Rmunb0sTsz5TOFWE9Qq3H9m0DHALTsmFBCDBQw1132",
+    "released_at": "2026-10-25T07:42:08.852Z"
+  },
+  {
+    "version": "1.0.61",
+    "integrity": "sha384-+5pTfLreA8VDIr3cyGReRfgcGlhAKUuteJVQ/7LekHLIMqguQs5aLgxMaxGvZcJK",
+    "released_at": "2026-10-25T12:38:45.594Z"
+  },
+  {
+    "version": "1.0.62",
+    "integrity": "sha384-Wgc7MSWtD37IF2h4EJTX7Q+1tzkrlg+jyoXizNnf+eiZetGxSkQTI8jj6di2lKTY",
+    "released_at": "2026-10-25T13:41:29.696Z"
+  },
+  {
+    "version": "1.0.63",
+    "integrity": "sha384-5DpnHx6VNQ2hukW7nRlyllFI4p/gWonfbR+0pPfEwRqJL5dVlPYObyWd2kq6T2Cy",
+    "released_at": "2026-10-25T15:33:04.957Z"
+  },
+  {
+    "version": "1.0.64",
+    "integrity": "sha384-He5zbyAZ/jd6ewBxfTgfzjfB4wiiKwFwkUwSngnjy/VuJNtwog0+zJ2Ydj6BAvVy",
+    "released_at": "2026-10-25T16:58:03.683Z"
+  },
+  {
+    "version": "1.0.65",
+    "integrity": "sha384-h9dq2cDoMLnaJzmRfSqzqFFGwiYwgSfE+5jaQiBCJyJOXo33QdiWIL8ekdi9+lxt",
+    "released_at": "2026-10-25T21:18:49.118Z"
+  },
+  {
+    "version": "1.0.66",
+    "integrity": "sha384-jpcS54wP90T/qjbkuH338VoCeJWqR+f8oEM6XE/yNusSJ4eyr1eLn2tmR/+BZCmn",
+    "released_at": "2026-10-27T10:09:39.680Z"
+  },
+  {
+    "version": "1.0.67",
+    "integrity": "sha384-oUSyTNwrgA7moBTkaGG6lES/FiBIw8ttPWQvNVegr7eIdrlhbHY+HCUzx3Uu8LXV",
+    "released_at": "2026-11-01T22:01:49.332Z"
+  },
+  {
+    "version": "1.0.68",
+    "integrity": "sha384-qwDqrykXsDepKjYPCL3KLjgxbQdHWAYVYeI32fIrt3jeZcDNIaKq7dbnjCOR/ivU",
+    "released_at": "2026-11-01T22:38:32.148Z"
+  },
+  {
+    "version": "1.0.69",
+    "integrity": "sha384-jd/eq4qODO1bbcGQrR22WawgKMBfurnz3K5brZAmstxom1h5ZiC/1VNFNz6pjwSu",
+    "released_at": "2026-11-01T22:54:30.963Z"
+  },
+  {
+    "version": "1.0.73",
+    "integrity": "sha384-hm5G8VCb9WHSuFcGNwJqS1hiq3n8kIZeBXL/LC3uZI9+om+WS6qZjpBrCrzKtreJ",
+    "released_at": "2026-11-03T12:46:39.861Z"
+  },
+  {
+    "version": "1.0.74",
+    "integrity": "sha384-oAGHpCpamwJgW7WmusAkSfBkHtTa72vF1N+vECaE1zE8+lGRfKvk6nzWX18gmDri",
+    "released_at": "2026-11-03T17:13:33.276Z"
+  },
+  {
+    "version": "1.0.75",
+    "integrity": "sha384-+uL5rJFYcLsJh51tmJEpTJa0lLNLxyIhuMIDAQfMFQHDJHia8o6l7thsynXmRubH",
+    "released_at": "2026-11-09T18:52:18.141Z"
+  },
+  {
+    "version": "1.0.76",
+    "integrity": "sha384-mNsJNsFI+60SyFhsNLOrlymPVZJaZ8JdgXWfml8uBPBvFGbO/fZ2hpIgv4h4n5em",
+    "released_at": "2026-11-09T21:32:05.484Z"
+  },
+  {
+    "version": "1.0.77",
+    "integrity": "sha384-T9oRlPGCYRcu9ZCJ14RTDMzbRG1hqSjZT09rD1U2gguKoJTF/RycV0NdJuL78Z5h",
+    "released_at": "2026-11-09T22:25:26.027Z"
+  },
+  {
+    "version": "1.0.78",
+    "integrity": "sha384-wcrwuEx8dH2FMMz228lGpOra2py3i+syN6s3Wm5FE+LucnKFAKg1wUz/t7HcSJ/W",
+    "released_at": "2026-11-09T22:38:36.087Z"
+  },
+  {
+    "version": "1.0.79",
+    "integrity": "sha384-BI4eUws1B6hqbt3kT4yrQl6/2brBIMmrudVmS63vBYr9NFy4BysptugX2MT8lc2z",
+    "released_at": "2026-11-10T14:10:51.967Z"
+  },
+  {
+    "version": "1.0.80",
+    "integrity": "sha384-FfddnutvhrM2VYKoli+5q5VeGpPmwaRhyPrqjuMXpngs1wpK/4lObIHRwhkVNpji",
+    "released_at": "2026-11-10T15:16:51.453Z"
+  },
+  {
+    "version": "1.0.81",
+    "integrity": "sha384-bU231xfhKy6QXaq6yTswAHKzA7NavzS7eKA0m1KxEpJO7yI3VyxXGUnZ4KJMcdyO",
+    "released_at": "2026-11-10T15:21:04.212Z"
+  },
+  {
+    "version": "1.0.82",
+    "integrity": "sha384-sEEPI1TtRqjaTVqZQva39spf2P6SKWIVK+YZjeoY8q2wW1UCtmmXwOYEwrRFj4Tq",
+    "released_at": "2026-11-11T15:43:47.394Z"
+  },
+  {
+    "version": "1.0.83",
+    "integrity": "sha384-Aqa0Rs2YUKbFpy5nSaFRavcVmM7lNmtAPGDA63Q25yurZQg2vt0ivxWAOkqCFuIl",
+    "released_at": "2026-11-11T20:57:10.704Z"
+  },
+  {
+    "version": "1.0.85",
+    "integrity": "sha384-nDanHQwWmMQTTuyxu4qGJPOKTNkUNBK/Gd/Qe2P+V1nzLtYYpxA4orMdnO9riVoL",
+    "released_at": "2026-11-13T14:52:36.335Z"
+  }
+]
