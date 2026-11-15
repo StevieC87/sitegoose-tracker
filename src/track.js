@@ -311,13 +311,13 @@ function keepVisitForTab() {
 }
 // What a site's config asks the tab to keep. A tab opened under a tracker that
 // kept every tool's visit drops it here once the site turns out not to need it.
-const needsVisit = ({ experiments = [], surveys = [], leadforms = [], notices = [], feedback = null, feedbacks = [], widgets = [] }) =>
+const needsVisit = ({ experiments = [], surveys = [], leadforms = [], notices = [], feedback = null, feedbacks = [], widgets = [], testimonials = [] }) =>
   experiments.length > 0 ||
-  [...surveys, ...leadforms, ...notices, feedback, ...feedbacks, ...widgets].some((tool) => tool?.targeting?.audience);
+  [...surveys, ...leadforms, ...notices, feedback, ...feedbacks, ...widgets, ...testimonials].some((tool) => tool?.targeting?.audience);
 let oldVisitGone = false;
 function keepWhatConfigNeeds(config) {
   if (needsVisit(config)) keepVisitForTab();
-  else if (config.banner || config.consentRegions || config.surveys?.length || config.leadforms?.length || config.notices?.length) keepForTab();
+  else if (config.banner || config.consentRegions || config.surveys?.length || config.leadforms?.length || config.notices?.length || config.testimonials?.length) keepForTab();
   if (!onsiteTools || visitKept || oldVisitGone) return;
   oldVisitGone = true;
   try {
@@ -3644,14 +3644,14 @@ async function loadSiteConfig() {
     // Page votes are only sent to trackers that can place them.
     body: JSON.stringify({
       siteid,
-      features: ["helpful", "widget-tests", "edit-audience", "triggers", "shield", "launcher", "audience-2", "feedback-list", "audience-3", "widgets-inline"],
+      features: ["helpful", "widget-tests", "edit-audience", "triggers", "shield", "launcher", "audience-2", "feedback-list", "audience-3", "widgets-inline", "testimonials"],
       screen: { width: window.screen.width, height: window.screen.height },
     }),
   }).then(async (response) => {
-    if (!response.ok) return { surveys: [], cooldownDays: 0, banner: null, consentRegions: null, leadforms: [], notices: [], experiments: [], country: "", capture_all: false, feedback: null, feedbacks: [], clicks: [], widgets: [], shield: null, intent: null, errors: true, visitor: {}, trackedPages: null, branded: false };
+    if (!response.ok) return { surveys: [], cooldownDays: 0, banner: null, consentRegions: null, leadforms: [], notices: [], experiments: [], country: "", capture_all: false, feedback: null, feedbacks: [], clicks: [], widgets: [], testimonials: [], shield: null, intent: null, errors: true, visitor: {}, trackedPages: null, branded: false };
     // errors: an older collector leaves it out, which must not read as "off".
-    const { surveys = [], cooldownDays = 0, banner = null, consentRegions = null, leadforms = [], notices = [], experiments = [], country = "", capture_all = false, feedback = null, feedbacks = [], clicks = [], widgets = [], shield = null, intent = null, errors = true, visitor = {}, trackedPages: pagesToTrack = null, branded = false } = await response.json();
-    const config = { at: Date.now(), surveys, cooldownDays, banner, consentRegions, leadforms, notices, experiments, country, capture_all, feedback, feedbacks, clicks, widgets, shield, intent, errors, visitor, trackedPages: pagesToTrack, branded: branded === true };
+    const { surveys = [], cooldownDays = 0, banner = null, consentRegions = null, leadforms = [], notices = [], experiments = [], country = "", capture_all = false, feedback = null, feedbacks = [], clicks = [], widgets = [], testimonials = [], shield = null, intent = null, errors = true, visitor = {}, trackedPages: pagesToTrack = null, branded = false } = await response.json();
+    const config = { at: Date.now(), surveys, cooldownDays, banner, consentRegions, leadforms, notices, experiments, country, capture_all, feedback, feedbacks, clicks, widgets, testimonials, shield, intent, errors, visitor, trackedPages: pagesToTrack, branded: branded === true };
     visitorCountry = country || "";
     trackedPages = pagesToTrack;
     siteIntent = intent;
@@ -3750,7 +3750,7 @@ async function scheduleSurvey() {
   if (surveyShowing) return;
   const popups = surveys.filter((s) => s.kind !== "helpful");
   const open = (survey) => {
-    if (lastTrackedPath === path && !surveyShowing && !leadPopupShowing && !noticePopupShowing) showSurvey(survey, path).catch(() => { surveyShowing = false; });
+    if (lastTrackedPath === path && !surveyShowing && !leadPopupShowing && !noticePopupShowing && !testimonialShowing) showSurvey(survey, path).catch(() => { surveyShowing = false; });
   };
 
   // An event on an earlier page: shown here, on any page.
@@ -3891,6 +3891,9 @@ async function showSurvey(survey, path, mount = null) {
   }).then((r) => r.status).catch(() => 0);
   const { renderSurvey } = await loadModule("survey.js");
   if (inline && lastTrackedPath !== path) return null;
+  // Whether each score given in this response was a top one, for a testimonial
+  // form that asks after it (afterSurvey).
+  const scores = [];
   // A page vote counts as shown once it scrolls into view.
   if (!inline) send("shown");
   return renderSurvey(survey, {
@@ -3899,6 +3902,8 @@ async function showSurvey(survey, path, mount = null) {
     answer: (questionId, answer) => {
       if (inline) rememberHelpful(survey, path);
       rememberAnswer(survey.id, questionId, answer);
+      const question = (survey.questions || []).find((q) => q.id === questionId);
+      if (question?.type === "nps" || question?.type === "rating") scores.push(topScore(question, answer));
       return send("answer", { question_id: questionId, answer });
     },
     complete: () => {
@@ -3911,7 +3916,12 @@ async function showSurvey(survey, path, mount = null) {
       if (!answered) send("closed");
       if (!inline) surveyShowing = false;
     },
-    done: () => { if (!inline) surveyShowing = false; },
+    // The thank-you has gone: the moment a testimonial form may follow.
+    done: () => {
+      if (inline) return;
+      surveyShowing = false;
+      afterSurvey(survey, scores, path);
+    },
   }, mount);
 }
 
@@ -3952,7 +3962,7 @@ async function scheduleLeadForms() {
   setTimeout(fillInline, 2000);
 
   const open = (form, after) => {
-    if (lastTrackedPath !== path || leadPopupShowing || surveyShowing || noticePopupShowing) return false;
+    if (lastTrackedPath !== path || leadPopupShowing || surveyShowing || noticePopupShowing || testimonialShowing) return false;
     leadPopupShowing = true;
     showLeadForm(form, path, null, after).catch(() => {
       leadPopupShowing = false;
@@ -4193,7 +4203,7 @@ function watchPopup(notice) {
   // Scroll triggers can fire while being set up, so a flag rather than stopping.
   let fired = false;
   noticePopupWatch = watchTrigger(notice.targeting?.trigger, () => {
-    if ((fired && !event) || noticePopupShowing || surveyShowing || leadPopupShowing) return;
+    if ((fired && !event) || noticePopupShowing || surveyShowing || leadPopupShowing || testimonialShowing) return;
     fired = true;
     showPopup(notice).catch(() => { noticePopupShowing = false; });
   });
@@ -4266,6 +4276,194 @@ function setLauncherUnread(count) {
   }
 }
 
+//. TESTIMONIALS --------------------------------------------------
+// Forms that ask a happy visitor for a few words the site may show (the
+// config's `testimonials`; the form itself is in feedback.js). A form asks by
+// itself some seconds into a page, after an event the site tracks (carried to
+// the next page, as a purchase usually moves on), or once a survey's thank-you
+// closes on a top score. It always opens from its link
+// (<any page>#sg-testimonial=<form id>) and from the site's own button:
+// window.analytics.testimonial() or analytics.testimonial(id). Never over
+// another popup. Someone who sent one isn't asked again; someone who closed
+// it is left alone for the form's closed_days. Each one sent is also a
+// "testimonial" event, so it counts in goals and funnels without the words.
+//
+// What the site shows is only what its owner approved:
+// window.analytics.testimonials() resolves to those, for a site drawing them
+// itself, and the block in the page (SITE WIDGETS below) reads the same list.
+const TESTIMONIAL_PENDING_KEY = `analytics:testimonial-pending:${siteid}`;
+const TESTIMONIAL_LINK = /^#sg-testimonial=([0-9a-f]{24})$/i;
+let testimonialCleanup = null;
+let testimonialShowing = false;
+let testimonialFeed = null;
+
+const testimonialKey = (form) => `analytics:testimonial:${form.id}`;
+const testimonialForms = async () => (await loadSiteConfig().catch(() => null))?.testimonials || [];
+
+const readTestimonialPending = () => {
+  try {
+    return JSON.parse(tabStore().getItem(TESTIMONIAL_PENDING_KEY) || "null");
+  } catch {
+    return null;
+  }
+};
+const writeTestimonialPending = (value) => {
+  try {
+    if (value) tabStore().setItem(TESTIMONIAL_PENDING_KEY, JSON.stringify(value));
+    else tabStore().removeItem(TESTIMONIAL_PENDING_KEY);
+  } catch { /* optional storage */ }
+};
+
+// Whether the form may ask this visitor by itself here.
+function testimonialMatches(form, path, anyPage = false) {
+  const seen = readStored(testimonialKey(form)) || {};
+  if (seen.sent || !waitedSince(seen.closed, Number(form.closed_days) || 0)) return false;
+  return placeMatches(form.targeting || {}, path, anyPage) && widgetAudienceMatches(form.targeting);
+}
+
+// 9 or 10 out of 10, or the top of a five-point rating.
+const topScore = (question, answer) => Number(answer) >= (question.type === "nps" || question.scale === 10 ? 9 : 5);
+
+// The approved testimonials, fetched once per page load (cached a minute at
+// the browser): { items, branded }, or null when they couldn't be read.
+function loadTestimonialFeed() {
+  testimonialFeed ||= fetch(
+    new URL(`widgets/testimonials?siteid=${encodeURIComponent(siteid)}`, COLLECT_URL),
+    { method: "GET", credentials: "omit" },
+  ).then((response) => (response.ok ? response.json() : null)).catch(() => null);
+  return testimonialFeed;
+}
+
+// Resolves to { ok, message }.
+function sendTestimonial(form, source, fields) {
+  return fetch(new URL("testimonials/submit", COLLECT_URL), {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    credentials: "omit",
+    body: JSON.stringify({
+      ...fields,
+      siteid,
+      form_id: form.id,
+      source,
+      path: lastTrackedPath || location.pathname,
+      // A visitor who declined consent sends it without their visit attached.
+      session_id: readConsent() === false ? "" : analyticsSession.getId(),
+      viewport_width: window.innerWidth,
+    }),
+  }).then(async (response) => {
+    const answer = await response.json().catch(() => ({}));
+    if (response.ok) {
+      const key = testimonialKey(form);
+      writeStored(key, { ...(readStored(key) || {}), sent: Date.now() });
+      window.analytics.track("testimonial", { label: source });
+    }
+    return { ok: response.ok, message: answer.message || "" };
+  }).catch(() => ({ ok: false, message: "" }));
+}
+
+// source: what opened it ("delay", "event", "survey", "link" or "button").
+async function openTestimonial(form, source) {
+  if (testimonialShowing || surveyShowing || leadPopupShowing || noticePopupShowing) return;
+  testimonialShowing = true;
+  writeTestimonialPending(null);
+  try {
+    feedbackModule ||= loadModule("feedback.js").catch((error) => {
+      feedbackModule = null;
+      throw error;
+    });
+    const { renderTestimonial } = await feedbackModule;
+    const key = testimonialKey(form);
+    renderTestimonial(form, {
+      branded: widgetsBranded,
+      submit: (fields) => sendTestimonial(form, source, fields),
+      closed: (sent) => {
+        testimonialShowing = false;
+        if (!sent) writeStored(key, { ...(readStored(key) || {}), closed: Date.now() });
+      },
+    });
+  } catch {
+    testimonialShowing = false;
+  }
+}
+
+// The form a link names, whatever its pages, devices and visitors say: the
+// visitor asked for it. The name comes off the address either way, so a
+// reload or a copied address doesn't open it again.
+function openTestimonialLink(forms) {
+  const id = TESTIMONIAL_LINK.exec(location.hash)?.[1]?.toLowerCase();
+  if (!id) return false;
+  try {
+    history.replaceState(history.state, "", location.pathname + location.search);
+  } catch { /* the address keeps it */ }
+  const form = forms.find((f) => f.id === id);
+  if (!form) return false;
+  openTestimonial(form, "link");
+  return true;
+}
+
+async function scheduleTestimonials() {
+  testimonialCleanup?.();
+  testimonialCleanup = null;
+  if (!siteid || !current?.src || navigator.webdriver) return;
+  const path = lastTrackedPath;
+  const forms = await testimonialForms();
+  if (!forms.length || lastTrackedPath !== path) return;
+  if (openTestimonialLink(forms) || testimonialShowing || !pageTracked(path)) return;
+  const stops = [];
+  testimonialCleanup = () => stops.forEach((stop) => stop());
+  const later = (form, source, ms) => {
+    const timer = setTimeout(() => {
+      if (lastTrackedPath === path) openTestimonial(form, source);
+    }, ms);
+    stops.push(() => clearTimeout(timer));
+  };
+
+  // An event on an earlier page: asked here, on any page.
+  const pending = readTestimonialPending();
+  if (pending) {
+    const form = Date.now() - pending.at < SURVEY_PENDING_MS
+      && forms.find((f) => f.id === pending.id && testimonialMatches(f, path, true));
+    if (form) return later(form, "event", Math.max(1000, pending.at - Date.now()));
+    writeTestimonialPending(null);
+  }
+
+  for (const form of forms) {
+    if (form.trigger?.type !== "event" || !testimonialMatches(form, path)) continue;
+    let fired = false;
+    stops.push(watchTrigger(form.trigger, () => {
+      if (fired || testimonialShowing) return;
+      fired = true;
+      const delay = (Number(form.trigger.value) || 0) * 1000;
+      writeTestimonialPending({ id: form.id, at: Date.now() + delay });
+      later(form, "event", delay);
+    }));
+  }
+
+  const timed = forms.find((f) => f.trigger?.type === "delay" && testimonialMatches(f, path));
+  if (timed) later(timed, "delay", (Number(timed.trigger.value) || 0) * 1000);
+}
+
+// After a popup survey's thank-you: the form that asks after a top score, when
+// every score given in that response was one.
+async function afterSurvey(survey, scores, path) {
+  if (!scores.length || scores.includes(false)) return;
+  const forms = await testimonialForms();
+  const form = forms.find((f) => f.trigger?.type === "survey"
+    && (!f.trigger.survey_id || f.trigger.survey_id === survey.id) && testimonialMatches(f, path));
+  if (form && lastTrackedPath === path) openTestimonial(form, "survey");
+}
+
+window.analytics.testimonial = async (id) => {
+  if (!siteid || !current?.src || navigator.webdriver) return;
+  const forms = await testimonialForms();
+  const path = lastTrackedPath || location.pathname;
+  // That form, else the first for this page, else the first.
+  const form = id ? forms.find((f) => f.id === String(id))
+    : forms.find((f) => placeMatches(f.targeting || {}, path)) || forms[0];
+  if (form) await openTestimonial(form, "button");
+};
+window.analytics.testimonials = () => loadTestimonialFeed().then((feed) => (Array.isArray(feed?.items) ? feed.items : []));
+
 //. SITE WIDGETS -------------------------------------------------
 // Widgets the owner mounts inside their own pages, rather than over them: an
 // empty element with data-analytics-widget="<kind>" (and
@@ -4327,14 +4525,22 @@ async function drawWidget(node, widget) {
   already?.remove();
   widgetsMounted.delete(node);
   // Keep the room before the module loads, not after.
-  if (widget.height > 0 && !node.style.minHeight) node.style.minHeight = `${widget.height}px`;
+  const keptRoom = widget.height > 0 && !node.style.minHeight;
+  if (keptRoom) node.style.minHeight = `${widget.height}px`;
   widgetModule ||= loadModule("widget.js").catch((error) => {
     widgetModule = null;
     throw error;
   });
-  const { renderStatusBadge } = await widgetModule;
+  const { renderStatusBadge, renderTestimonials } = await widgetModule;
   if (!node.isConnected) return;
   let drawn = null;
+  if (widget.kind === "testimonials") {
+    const feed = await loadTestimonialFeed();
+    if (!node.isConnected) return;
+    drawn = feed ? renderTestimonials(node, widget, feed) : null;
+    // None approved yet: no room is kept for a block that isn't there.
+    if (!drawn && keptRoom) node.style.minHeight = "";
+  }
   if (widget.kind === "status") {
     const days = Math.min(Math.max(Number(widget.look?.days) || 30, 1), 90);
     const status = await loadWidgetStatus(days);
@@ -5907,6 +6113,7 @@ async function track() {
   scheduleNotices().catch(() => {});
   scheduleFeedback().catch(() => {});
   scheduleSiteWidgets().catch(() => {});
+  scheduleTestimonials().catch(() => {});
   flushQueuedCalls();
   //})();
 }

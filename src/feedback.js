@@ -7,6 +7,9 @@
 // capture() → called as the form opens, before the visitor clicks anything
 // else, so the page snapshot shows what they were looking at.
 // Returns { open(), isOpen(), remove() }.
+//
+// The form that asks for a testimonial is here too (renderTestimonial, at the
+// end): the same kind of box, drawn with the same pieces.
 
 const DEFAULT_TEXTS = {
   button: "Feedback",
@@ -435,4 +438,203 @@ export function renderFeedback(settings, api) {
   }
 
   return { open, isOpen: () => Boolean(panel), remove };
+}
+
+//. TESTIMONIAL FORM ----------------------------------------------
+// A form asking a happy visitor for a few words the site may show: what they
+// write, optional stars, their name as it should appear, and a tick that gives
+// permission. It lives in this file because it is the same kind of box as the
+// feedback form and draws with the same pieces (the surface, the site's own
+// look, the thank-you line); a file of its own would have to be let through by
+// the first-party proxy in every server package before it could load.
+// The permission sentence comes from the collector with the form, never from
+// here: what the visitor ticks is the sentence that gets stored.
+// api: submit(fields) → Promise<{ ok, message }>, closed(sent), branded.
+// Returns { remove() }.
+const TESTIMONIAL_TEXTS = {
+  title: "Would you say a few words about us?",
+  placeholder: "What did you like?",
+  stars: "Your rating",
+  name: "Name as it should appear",
+  role: "Role or company (optional)",
+  email: "Email (optional, never shown)",
+  send: "Send",
+  thanks: "Thank you!",
+  close: "Close",
+};
+
+const testimonialCss = (color, s, position, font) => `
+  :host { all: initial; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  .root { font: 14px/1.4 ${font || SYSTEM_FONT}; color: ${s.fg}; }
+  .shade { position: fixed; z-index: 2147482999; inset: 0; background: rgba(0,0,0,.4); }
+  .panel {
+    position: fixed; z-index: 2147483000; width: calc(100vw - 32px); max-width: 380px; max-height: calc(100vh - 32px); overflow: auto;
+    ${position === "center" ? "top: 50%; left: 50%; transform: translate(-50%, -50%);" : `bottom: 16px; ${position === "left" ? "left: 16px;" : "right: 16px;"}`}
+    padding: 16px; border-radius: 12px; background: ${s.bg}; border: 1px solid ${s.line};
+    box-shadow: 0 10px 30px rgba(0,0,0,.2); display: flex; flex-direction: column; gap: 12px;
+  }
+  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .x { border: 0; background: none; color: inherit; opacity: .6; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px; }
+  .x:hover, .x:focus-visible { opacity: 1; }
+  .stars { display: flex; gap: 2px; border: 0; padding: 0; margin: 0; }
+  .star { border: 0; background: none; padding: 2px; cursor: pointer; font-size: 26px; line-height: 1; color: ${s.fieldLine}; }
+  .star[aria-checked="true"], .star.lit { color: ${color}; }
+  .star:focus-visible { outline: 2px solid ${color}; outline-offset: 1px; border-radius: 4px; }
+  textarea, input[type="text"], input[type="email"] {
+    width: 100%; padding: 9px 12px; border-radius: 8px; font: inherit; color: inherit; background: ${s.field};
+    border: 1px solid ${s.fieldLine};
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  textarea:focus, input:focus { outline: none; border-color: ${color}; }
+  .agree { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; cursor: pointer; }
+  .agree input { margin: 2px 0 0; accent-color: ${color}; flex: none; }
+  .foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .err { color: ${s.deep ? "#fca5a5" : "#dc2626"}; font-size: 13px; margin: 0; }
+  .btn { border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; font-weight: 600; background: ${color}; color: #fff; }
+  .btn[disabled] { opacity: .45; cursor: default; }
+  .thanks { margin: 4px 0; font-weight: 600; }
+  .credit { margin: 10px 0 0; font-size: 12px; font-weight: 400; opacity: 0.7; }
+  .credit a { color: inherit; text-decoration: none; }
+  .credit a:hover { text-decoration: underline; }
+`;
+
+export function renderTestimonial(form, api) {
+  const texts = { ...TESTIMONIAL_TEXTS, ...(form.texts || {}) };
+  // No permission sentence, no form: the tick would mean nothing.
+  if (!texts.consent) {
+    api.closed(false);
+    return { remove() {} };
+  }
+  const position = ["left", "center"].includes(form.position) ? form.position : "right";
+
+  const host = document.createElement("div");
+  host.setAttribute("data-noanalytics", "");
+  const root = host.attachShadow({ mode: "open" });
+  const style = el("style");
+  root.append(style);
+  const site = followLook("testimonial", host, root, form, (seen, font) => {
+    // Six digits only: the CSS appends a two-digit alpha to it.
+    const color = /^#[0-9a-f]{6}$/i.test(seen.color || "") ? seen.color : "#2563eb";
+    style.textContent = testimonialCss(color, surface(seen), position, font);
+  });
+  const wrap = el("div", { class: "root" });
+  root.append(wrap);
+  document.body.append(host);
+  site.update();
+
+  let gone = false;
+  let sent = false;
+  let state = { text: "", rating: 0, name: "", role: "", email: "", consent: false };
+
+  const finish = () => {
+    if (gone) return;
+    gone = true;
+    document.removeEventListener("keydown", onKey, true);
+    site.stop();
+    host.remove();
+  };
+  const close = () => {
+    if (gone) return;
+    finish();
+    api.closed(sent);
+  };
+  // A corner form isn't modal: Esc closes it only from inside, not when the
+  // visitor is closing the site's own menu.
+  function onKey(e) {
+    if (e.key === "Escape" && (position === "center" || e.composedPath().includes(host))) close();
+  }
+  document.addEventListener("keydown", onKey, true);
+
+  function render(error = "") {
+    const words = el("textarea", { part: "field", "aria-label": texts.placeholder, placeholder: texts.placeholder, maxlength: "1000" });
+    words.value = state.text;
+    const field = (key, type, max) => {
+      const input = el("input", { type, part: "field", placeholder: texts[key], "aria-label": texts[key], maxlength: String(max) });
+      input.value = state[key];
+      input.addEventListener("input", () => { state[key] = input.value; sync(); });
+      return input;
+    };
+    const name = field("name", "text", 80);
+    const tick = el("input", { type: "checkbox" });
+    tick.checked = state.consent;
+    const send = el("button", { class: "btn", part: "button", type: "submit", text: texts.send });
+    function sync() {
+      state.text = words.value;
+      state.consent = tick.checked;
+      send.disabled = !words.value.trim() || !name.value.trim() || !tick.checked;
+    }
+    words.addEventListener("input", sync);
+    tick.addEventListener("change", sync);
+    sync();
+
+    // Five stars as one radio group: arrow keys move, a click on the chosen
+    // one takes it back.
+    const stars = el("div", { class: "stars", role: "radiogroup", "aria-label": texts.stars });
+    const paint = () => [...stars.children].forEach((star, i) => {
+      star.setAttribute("aria-checked", String(state.rating === i + 1));
+      star.classList.toggle("lit", i < state.rating);
+      star.tabIndex = (state.rating ? state.rating === i + 1 : i === 0) ? 0 : -1;
+    });
+    for (let n = 1; n <= 5; n += 1) {
+      stars.append(el("button", {
+        class: "star", type: "button", role: "radio", "aria-label": `${n} / 5`, text: "★",
+        onclick: () => { state.rating = state.rating === n ? 0 : n; paint(); },
+        onkeydown: (e) => {
+          const step = ["ArrowRight", "ArrowUp"].includes(e.key) ? 1 : ["ArrowLeft", "ArrowDown"].includes(e.key) ? -1 : 0;
+          if (!step) return;
+          e.preventDefault();
+          state.rating = Math.min(5, Math.max(1, (state.rating || (step > 0 ? 0 : 2)) + step));
+          paint();
+          stars.children[state.rating - 1].focus();
+        },
+      }));
+    }
+    paint();
+
+    const box = el("form", { class: "panel", part: "box", role: "dialog", "aria-modal": String(position === "center"), "aria-labelledby": "tm-title" }, [
+      el("div", { class: "head" }, [
+        el("h2", { part: "title", id: "tm-title", text: texts.title }),
+        el("button", { class: "x", type: "button", "aria-label": texts.close, title: texts.close, text: "✕", onclick: close }),
+      ]),
+      ...(form.ask_rating ? [stars] : []),
+      words,
+      name,
+      ...(form.ask_role ? [field("role", "text", 100)] : []),
+      ...(form.ask_email ? [field("email", "email", 200)] : []),
+      el("label", { class: "agree", part: "label" }, [tick, el("span", { text: texts.consent })]),
+      ...(error ? [el("p", { class: "err", role: "alert", text: error })] : []),
+      el("div", { class: "foot" }, [send]),
+    ]);
+    box.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (send.disabled) return;
+      send.disabled = true;
+      const result = await api.submit({
+        text: state.text.trim(), rating: form.ask_rating ? state.rating : 0, name: state.name.trim(),
+        role: state.role.trim(), email: state.email.trim(), consent: state.consent,
+      });
+      if (gone) return;
+      if (!result.ok) {
+        render(result.message || "Couldn't send it. Please try again.");
+        return;
+      }
+      sent = true;
+      // The status is the thank-you alone, so a screen reader isn't read the line under it.
+      wrap.querySelector(".panel").replaceWith(el("div", { class: "panel", part: "box" }, [
+        el("p", { class: "thanks", role: "status", text: texts.thanks }), ...(api.branded ? [credit()] : []),
+      ]));
+      setTimeout(close, 2500);
+    });
+
+    const old = wrap.querySelector(".panel");
+    if (old) old.replaceWith(box);
+    else wrap.append(...(position === "center" ? [el("div", { class: "shade", onclick: close })] : []), box);
+    if (!error) words.focus({ preventScroll: true });
+  }
+  render();
+
+  return { remove: finish };
 }

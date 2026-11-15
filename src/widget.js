@@ -10,6 +10,7 @@
 // chose in the dashboard.
 //
 // renderStatusBadge(mount, widget, status) -> { remove() }
+// renderTestimonials(mount, widget, feed) -> { remove() }
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const color = (value, fallback) => (HEX.test(value || "") ? value : fallback);
@@ -115,6 +116,94 @@ export function renderStatusBadge(mount, widget, status) {
       : days.length ? `${state.label}. ${uptime.toFixed(2)}% uptime over the last ${days.length} days.`
         : `${state.label}. ${uptime.toFixed(2)}% uptime.`,
   }, children));
+
+  return { remove: () => host.remove() };
+}
+
+//. TESTIMONIALS -------------------------------------------------
+// The site's approved testimonials, where the owner put the element. It has no
+// theme of its own: the words take the page's font and text colour, and the
+// lines around them are that same colour, faint, so the block follows a dark
+// page without being told. Everything a visitor wrote is set as text, never as
+// markup. The ::part() names (quote, text, name, role, stars) are a promise to
+// every site that styles them: never rename one.
+//
+// feed: { items: [{ id, text, name, role, rating }], branded }. branded puts
+// "Powered by SiteGoose" under the block (Free); it has no part name, so the
+// site's CSS doesn't reach it.
+const starsOf = (rating) => el("span", { class: "stars", part: "stars", role: "img", "aria-label": `${rating} / 5` }, [
+  el("span", { "aria-hidden": "true", text: "★".repeat(rating) }),
+  el("span", { class: "off", "aria-hidden": "true", text: "★".repeat(5 - rating) }),
+]);
+
+const quoteOf = (item, stars) => el("figure", { class: "quote", part: "quote" }, [
+  ...(stars && item.rating ? [starsOf(item.rating)] : []),
+  el("blockquote", { class: "text", part: "text", text: item.text }),
+  el("figcaption", {}, [
+    el("span", { class: "name", part: "name", text: item.name }),
+    ...(item.role ? [el("span", { class: "role", part: "role", text: item.role })] : []),
+  ]),
+]);
+
+export function renderTestimonials(mount, widget, feed) {
+  const look = widget.look || {};
+  const layout = ["wall", "list", "single"].includes(look.layout) ? look.layout : "wall";
+  const count = Math.min(Math.max(Number(look.count) || 9, 1), 50);
+  const items = (Array.isArray(feed?.items) ? feed.items : []).filter((item) => item?.text && item?.name).slice(0, count);
+  if (!items.length) return null;
+  const accent = color(look.accent, "currentColor");
+
+  const { host, root } = shadowHost(mount, `
+    .wall { columns: 280px; column-gap: 16px; }
+    .wall .quote { break-inside: avoid; margin: 0 0 16px; }
+    .list { display: flex; flex-direction: column; gap: 16px; }
+    .quote { position: relative; margin: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+    /* The card's line, in the page's own text colour: a border can't be made
+       faint without also fading what is inside it. */
+    .quote::before { content: ""; position: absolute; inset: 0; border: 1px solid currentColor; border-radius: 12px; opacity: .16; pointer-events: none; }
+    .text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+    figcaption { display: flex; flex-direction: column; font-size: .9em; }
+    .name { font-weight: 600; }
+    .role { opacity: .65; }
+    .stars { color: ${accent}; letter-spacing: 1px; line-height: 1; }
+    .stars .off { opacity: .22; }
+    .nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; font-size: .9em; }
+    .nav button { font: inherit; color: inherit; background: none; border: 0; padding: 4px 10px; cursor: pointer; opacity: .7; }
+    .nav button:hover, .nav button:focus-visible { opacity: 1; }
+    .credit { margin: 10px 0 0; font-size: 12px; opacity: .6; }
+    .credit a { color: inherit; text-decoration: none; }
+    .credit a:hover { text-decoration: underline; }
+  `);
+
+  const children = [];
+  if (layout === "single") {
+    // One at a time, moved by the visitor: nothing changes by itself.
+    let at = 0;
+    const slot = el("div", { "aria-live": "polite" });
+    const place = el("span");
+    const show = (step) => {
+      at = (at + step + items.length) % items.length;
+      slot.replaceChildren(quoteOf(items[at], look.stars !== false));
+      place.textContent = `${at + 1} / ${items.length}`;
+    };
+    show(0);
+    children.push(slot);
+    if (items.length > 1) {
+      children.push(el("div", { class: "nav" }, [
+        el("button", { type: "button", "aria-label": "Previous", text: "‹", onclick: () => show(-1) }),
+        place,
+        el("button", { type: "button", "aria-label": "Next", text: "›", onclick: () => show(1) }),
+      ]));
+    }
+  } else {
+    children.push(el("div", { class: layout }, items.map((item) => quoteOf(item, look.stars !== false))));
+  }
+  if (feed.branded) {
+    children.push(el("p", { class: "credit" }, [
+      el("a", { href: "https://sitegoose.com/?utm_source=powered-by&utm_medium=widget", target: "_blank", rel: "noopener", text: "Powered by SiteGoose" }),
+    ]));
+  }
+  root.append(...children);
 
   return { remove: () => host.remove() };
 }
