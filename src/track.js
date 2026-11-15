@@ -3397,6 +3397,7 @@ async function showFeedback(settings) {
     loadModule("snapshot.js").then((lib) => { feedbackSnapshotLib = lib; }).catch(() => {});
   }
   const widget = renderFeedback(settings, {
+    branded: widgetsBranded,
     selector: heatmapSelector,
     capture: () => {
       feedbackCapture = null;
@@ -3574,6 +3575,9 @@ let siteIntent = null;
 // The visitor's device, browser, OS, region and city as analytics names them
 // (the collector works them out), for audiences matching those values.
 let visitorFacts = {};
+// Whether the site's plan puts "Powered by SiteGoose" under the thank-you of
+// a form, a survey and the feedback button (the config's `branded`).
+let widgetsBranded = false;
 // "Pages to track" in the site's settings. The collector keeps nothing from a
 // page left out, so surveys, popups, notices, feedback buttons, A/B tests and
 // lead capture stay off it too. The banner, spam protection, site edits and
@@ -3590,6 +3594,7 @@ async function loadSiteConfig() {
       visitorCountry = cached.country || "";
       siteIntent = cached.intent || null;
       visitorFacts = cached.visitor || {};
+      widgetsBranded = cached.branded === true;
       trackedPages = cached.trackedPages || null;
       errorsAreOff(cached.errors);
       return cached;
@@ -3606,14 +3611,15 @@ async function loadSiteConfig() {
       screen: { width: window.screen.width, height: window.screen.height },
     }),
   }).then(async (response) => {
-    if (!response.ok) return { surveys: [], cooldownDays: 0, banner: null, consentRegions: null, leadforms: [], notices: [], experiments: [], country: "", capture_all: false, feedback: null, feedbacks: [], clicks: [], widgets: [], shield: null, intent: null, errors: true, visitor: {}, trackedPages: null };
+    if (!response.ok) return { surveys: [], cooldownDays: 0, banner: null, consentRegions: null, leadforms: [], notices: [], experiments: [], country: "", capture_all: false, feedback: null, feedbacks: [], clicks: [], widgets: [], shield: null, intent: null, errors: true, visitor: {}, trackedPages: null, branded: false };
     // errors: an older collector leaves it out, which must not read as "off".
-    const { surveys = [], cooldownDays = 0, banner = null, consentRegions = null, leadforms = [], notices = [], experiments = [], country = "", capture_all = false, feedback = null, feedbacks = [], clicks = [], widgets = [], shield = null, intent = null, errors = true, visitor = {}, trackedPages: pagesToTrack = null } = await response.json();
-    const config = { at: Date.now(), surveys, cooldownDays, banner, consentRegions, leadforms, notices, experiments, country, capture_all, feedback, feedbacks, clicks, widgets, shield, intent, errors, visitor, trackedPages: pagesToTrack };
+    const { surveys = [], cooldownDays = 0, banner = null, consentRegions = null, leadforms = [], notices = [], experiments = [], country = "", capture_all = false, feedback = null, feedbacks = [], clicks = [], widgets = [], shield = null, intent = null, errors = true, visitor = {}, trackedPages: pagesToTrack = null, branded = false } = await response.json();
+    const config = { at: Date.now(), surveys, cooldownDays, banner, consentRegions, leadforms, notices, experiments, country, capture_all, feedback, feedbacks, clicks, widgets, shield, intent, errors, visitor, trackedPages: pagesToTrack, branded: branded === true };
     visitorCountry = country || "";
     trackedPages = pagesToTrack;
     siteIntent = intent;
     visitorFacts = visitor || {};
+    widgetsBranded = config.branded;
     errorsAreOff(errors);
     if (banner || consentRegions || surveys.length || leadforms.length || notices.length || experiments.length ||
         [feedback, ...feedbacks, ...widgets].some((w) => w?.targeting?.audience)) keepForTab();
@@ -3852,6 +3858,7 @@ async function showSurvey(survey, path, mount = null) {
   // A page vote counts as shown once it scrolls into view.
   if (!inline) send("shown");
   return renderSurvey(survey, {
+    branded: widgetsBranded,
     shown: () => send("shown"),
     answer: (questionId, answer) => {
       if (inline) rememberHelpful(survey, path);
@@ -3984,6 +3991,7 @@ async function showLeadForm(form, path, mount, after) {
   }).catch(() => {});
   renderLeadForm(form, mount, {
     shield,
+    branded: widgetsBranded,
     image: mount ? "" : siteImageUrl(form.image),
     // What a field's condition can know about the visit rather than the
     // answers. The country is the one the collector geo-located for this

@@ -6,7 +6,8 @@
 // Callbacks: submit(values, extra) -> Promise<{ status, field, message }>,
 // submitted(), close() (closed without sending), done(); shield, the
 // page's spam protection (shield.js) when the site uses it; and image, the
-// URL of a popup's image (above the form, or beside it in centred popups). renderLauncher
+// URL of a popup's image (above the form, or beside it in centred popups);
+// and branded, whether the thank-you says "Powered by SiteGoose". renderLauncher
 // draws the floating button that opens a "button" popup.
 
 const DEFAULTS = { button: "Subscribe", thanks: "Thanks! You're on the list.", next: "Next", back: "Back", close: "Close", download: "Download", copy: "Copy", copied: "Copied ✓" };
@@ -236,6 +237,9 @@ const css = (color, s, mode, l, font) => {
   @media (prefers-reduced-motion: reduce) { .go { animation: none; } .prog i { transition: none; } }
   .link { border: 0; background: none; color: inherit; opacity: .7; cursor: pointer; font: inherit; }
   .thanks { margin: 0 0 12px; font-weight: 600; }
+  .credit { margin: 10px 0 0; font-size: 12px; font-weight: 400; opacity: 0.7; }
+  .credit a { color: inherit; text-decoration: none; }
+  .credit a:hover { text-decoration: underline; }
   .code {
     display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 4px 4px 4px 12px;
     border: 1.5px dashed currentColor; border-radius: 8px;
@@ -285,6 +289,14 @@ const el = (tag, attrs = {}, children = []) => {
   for (const child of children) node.append(child);
   return node;
 };
+
+// "Powered by SiteGoose" under the thank-you, on the plans that carry it (the
+// collector's `branded`). The words and the address are fixed here, so nothing
+// in a site's settings can change them, and it has no part name, so the
+// site's CSS doesn't reach it. The same in leadform.js, survey.js and feedback.js.
+const credit = () => el("p", { class: "credit" }, [
+  el("a", { href: "https://sitegoose.com/?utm_source=powered-by&utm_medium=widget", target: "_blank", rel: "noopener", text: "Powered by SiteGoose" }),
+]);
 
 const INPUT_TYPES = { email: "email", phone: "tel", name: "text", text: "text", number: "number", date: "date", url: "url" };
 const AUTOCOMPLETE = { email: "email", phone: "tel", name: "name", url: "url" };
@@ -1158,6 +1170,7 @@ export function renderLeadForm(form, mount, callbacks) {
     if (/^https?:\/\//i.test(form.download_url || "")) {
       done.push(el("a", { class: "btn", part: "button", href: form.download_url, target: "_blank", rel: "noopener", text: DEFAULTS.download }));
     }
+    if (callbacks.branded) done.push(credit());
     main.replaceChildren(...done);
     // Popups close by themselves unless there's a download to click or a code
     // to copy.

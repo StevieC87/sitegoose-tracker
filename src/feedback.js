@@ -203,6 +203,9 @@ const css = (color, s, left, font) => `
   .btn { margin-left: auto; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; font: inherit; font-weight: 600; background: ${color}; color: #fff; }
   .btn[disabled] { opacity: .45; cursor: default; }
   .thanks { margin: 4px 0; font-weight: 600; }
+  .credit { margin: 10px 0 0; font-size: 12px; font-weight: 400; opacity: 0.7; }
+  .credit a { color: inherit; text-decoration: none; }
+  .credit a:hover { text-decoration: underline; }
   .hint {
     position: fixed; z-index: 2147483001; top: 12px; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 24px);
     padding: 8px 14px; border-radius: 99px; background: #111827; color: #fff; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.25);
@@ -220,6 +223,14 @@ const el = (tag, attrs = {}, children = []) => {
   for (const child of children) node.append(child);
   return node;
 };
+
+// "Powered by SiteGoose" under the thank-you, on the plans that carry it (the
+// collector's `branded`). The words and the address are fixed here, so nothing
+// in a site's settings can change them, and it has no part name, so the
+// site's CSS doesn't reach it. The same in leadform.js, survey.js and feedback.js.
+const credit = () => el("p", { class: "credit" }, [
+  el("a", { href: "https://sitegoose.com/?utm_source=powered-by&utm_medium=widget", target: "_blank", rel: "noopener", text: "Powered by SiteGoose" }),
+]);
 
 // A short, safe label for the element: its tag and visible text (form fields
 // only by their name, never their value).
@@ -391,7 +402,8 @@ export function renderFeedback(settings, api) {
         return;
       }
       state = { category: categories[0] || "other", message: "", email: "", element: null };
-      const done = el("div", { class: "panel", part: "box", role: "status" }, [el("p", { class: "thanks", text: texts.thanks })]);
+      // The status is the thank-you alone, so a screen reader isn't read the line under it.
+      const done = el("div", { class: "panel", part: "box" }, [el("p", { class: "thanks", role: "status", text: texts.thanks }), ...(api.branded ? [credit()] : [])]);
       panel.replaceWith(done);
       panel = done;
       setTimeout(() => { if (panel === done) close(); }, 2500);

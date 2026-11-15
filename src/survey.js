@@ -4,7 +4,8 @@
 // A page vote (look.position "inline") goes inside `mount` instead: a Yes / No
 // answer is sent on click, it can't be closed and its thank-you stays.
 // Callbacks: shown() (inline, once in view), answer(questionId, value),
-// complete(), close(answeredAny), done(). Returns a function that removes it.
+// complete(), close(answeredAny), done(); and branded, whether the thank-you
+// says "Powered by SiteGoose". Returns a function that removes it.
 
 const DEFAULT_TEXTS = {
   next: "Next",
@@ -202,6 +203,9 @@ const css = (color, s, position, font) => `
   .btn[disabled] { opacity: .45; cursor: default; }
   .link { border: 0; background: none; color: inherit; opacity: .7; cursor: pointer; font: inherit; }
   .thanks { margin: 4px 0; font-weight: 600; }
+  .credit { margin: 10px 0 0; font-size: 12px; font-weight: 400; opacity: 0.7; }
+  .credit a { color: inherit; text-decoration: none; }
+  .credit a:hover { text-decoration: underline; }
 `;
 
 const el = (tag, attrs = {}, children = []) => {
@@ -214,6 +218,14 @@ const el = (tag, attrs = {}, children = []) => {
   for (const child of children) node.append(child);
   return node;
 };
+
+// "Powered by SiteGoose" under the thank-you, on the plans that carry it (the
+// collector's `branded`). The words and the address are fixed here, so nothing
+// in a site's settings can change them, and it has no part name, so the
+// site's CSS doesn't reach it. The same in leadform.js, survey.js and feedback.js.
+const credit = () => el("p", { class: "credit" }, [
+  el("a", { href: "https://sitegoose.com/?utm_source=powered-by&utm_medium=widget", target: "_blank", rel: "noopener", text: "Powered by SiteGoose" }),
+]);
 
 // The question a rule sends this answer to ("end" finishes), or null for the
 // next one. Rules only point ahead, so a survey can't loop.
@@ -295,8 +307,10 @@ export function renderSurvey(survey, callbacks, mount = null) {
     // Every question skipped: nothing was answered, so it closes as ✕ would.
     if (!answeredAny) return close();
     callbacks.complete();
-    box.replaceChildren(el("p", { class: "thanks", role: "status", text: texts.thanks }));
-    if (inline) return;
+    const said = el("p", { class: "thanks", role: "status", text: texts.thanks });
+    // A page vote's thank-you stays in the page for good, so it never carries the line.
+    if (inline) return box.replaceChildren(said);
+    box.replaceChildren(said, ...(callbacks.branded ? [credit()] : []));
     setTimeout(() => {
       if (!closed) {
         finish();
