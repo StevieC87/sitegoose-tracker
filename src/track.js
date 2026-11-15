@@ -264,36 +264,72 @@ else readPageBuild();
 // ---- What the browser keeps ----
 // Analytics on its own stores nothing on the visitor's device: these notes last
 // as long as the page. A site running tools that need to remember across pages
-// (popups, forms, surveys, tests, a banner) keeps them for this tab instead, from
-// the moment its config says so. A visitor the site may recognise is the only
-// one with a lasting ID (see mayRemember).
-const pageNotes = new Map();
-const pageStore = {
-  getItem: (key) => pageNotes.get(key) ?? null,
-  setItem: (key, value) => { pageNotes.set(key, String(value)); },
-  removeItem: (key) => { pageNotes.delete(key); },
-};
+// (popups, forms, surveys, tests, a banner) keeps the tools' notes for this tab
+// instead, from the moment its config says so. The visit itself (its ID, and
+// what visitMemoryKeys lists) is kept for the tab only where something needs to
+// know a visit from one page to the next: a test or site edit, a tool shown to
+// an audience, or a recording. A visitor the site may recognise is the only one
+// with a lasting ID (see mayRemember).
+const notesStore = (notes) => ({
+  notes,
+  getItem: (key) => notes.get(key) ?? null,
+  setItem: (key, value) => { notes.set(key, String(value)); },
+  removeItem: (key) => { notes.delete(key); },
+});
+const pageStore = notesStore(new Map());
+const pageVisit = notesStore(new Map());
 const ONSITE_TOOLS_KEY = `analytics:tools:${siteid}`;
+const VISIT_KEPT_KEY = `analytics:visit:${siteid}`;
 let onsiteTools = false;
+let visitKept = false;
 try {
   onsiteTools = sessionStorage.getItem(ONSITE_TOOLS_KEY) === "1";
+  visitKept = onsiteTools && sessionStorage.getItem(VISIT_KEPT_KEY) === "1";
 } catch { /* optional storage */ }
 const tabStore = () => (onsiteTools ? sessionStorage : pageStore);
+const visitStore = () => (visitKept ? sessionStorage : pageVisit);
+// Moves what a page has noted so far into the tab.
+function moveToTab(flag, { notes }) {
+  sessionStorage.setItem(flag, "1");
+  for (const [key, value] of notes) sessionStorage.setItem(key, value);
+  notes.clear();
+}
 function keepForTab() {
   if (onsiteTools) return;
   try {
-    sessionStorage.setItem(ONSITE_TOOLS_KEY, "1");
-    for (const [key, value] of pageNotes) sessionStorage.setItem(key, value);
+    moveToTab(ONSITE_TOOLS_KEY, pageStore);
     onsiteTools = true;
-    pageNotes.clear();
   } catch { /* optional storage: the notes stay with this page */ }
+}
+function keepVisitForTab() {
+  keepForTab();
+  if (visitKept || !onsiteTools) return;
+  try {
+    moveToTab(VISIT_KEPT_KEY, pageVisit);
+    visitKept = true;
+  } catch { /* optional storage: the visit stays with this page */ }
+}
+// What a site's config asks the tab to keep. A tab opened under a tracker that
+// kept every tool's visit drops it here once the site turns out not to need it.
+const needsVisit = ({ experiments = [], surveys = [], leadforms = [], notices = [], feedback = null, feedbacks = [], widgets = [] }) =>
+  experiments.length > 0 ||
+  [...surveys, ...leadforms, ...notices, feedback, ...feedbacks, ...widgets].some((tool) => tool?.targeting?.audience);
+let oldVisitGone = false;
+function keepWhatConfigNeeds(config) {
+  if (needsVisit(config)) keepVisitForTab();
+  else if (config.banner || config.consentRegions || config.surveys?.length || config.leadforms?.length || config.notices?.length) keepForTab();
+  if (!onsiteTools || visitKept || oldVisitGone) return;
+  oldVisitGone = true;
+  try {
+    for (const key of [`analytics:session:${siteid}`, ...visitMemoryKeys()]) sessionStorage.removeItem(key);
+  } catch { /* optional storage */ }
 }
 // Without a tab's memory the same thing would be sent on every page, so these
 // reports go out from one page in ten instead.
 const REPORT_SAMPLE = 0.1;
 const skipReport = () => tabStore() === pageStore && Math.random() >= REPORT_SAMPLE;
 // ---- end what the browser keeps ----
-const analyticsSession = createAnalyticsSession(siteid, window, () => (mayRemember() ? localStorage : tabStore()));
+const analyticsSession = createAnalyticsSession(siteid, window, () => (mayRemember() ? localStorage : visitStore()));
 // Customer checkout code reads this ID and sends it to its own backend.
 window.analyticsSession = { getId: analyticsSession.getId };
 const enablePerfMetrics =
@@ -3318,7 +3354,7 @@ async function startReplay() {
     noReplayLog();
     return;
   }
-  keepForTab();
+  keepVisitForTab();
   if (decision.session !== sessionId) {
     analyticsSession.adopt(decision.session);
     sessionId = decision.session;
@@ -3516,10 +3552,10 @@ const writeStored = (key, value) => {
 // its first visit, visit count, events fired, survey answers, test variants,
 // last lead and how the visit arrived. Only a visitor this site may recognise
 // (they said yes, or its mode recognises them until they say no) keeps it on
-// the device. Everyone else keeps it for this tab only, in tabStore, so
+// the device. Everyone else keeps it for this tab only, in visitStore, so
 // nothing lasting is stored before they agree; their rules see a first visit
 // each time. A lasting copy from an older tracker is removed as it's touched.
-// On a site with none of those rules, "this tab" is only this page (tabStore).
+// On a site with none of those rules, "this tab" is only this page (visitStore).
 // Function declarations, so setConsent can clear them whenever it runs.
 function visitMemoryKeys() {
   return ["firstseen", "channel", "visitstats", "lead", "events-seen", "answers", "experiments", "experiments-seen"]
@@ -3530,7 +3566,7 @@ function mayRemember() {
 }
 function readVisitMemory(key) {
   try {
-    return JSON.parse((mayRemember() ? localStorage : tabStore()).getItem(key) || "null");
+    return JSON.parse((mayRemember() ? localStorage : visitStore()).getItem(key) || "null");
   } catch {
     return null;
   }
@@ -3540,7 +3576,7 @@ function writeVisitMemory(key, value) {
     if (mayRemember()) {
       localStorage.setItem(key, JSON.stringify(value));
     } else {
-      tabStore().setItem(key, JSON.stringify(value));
+      visitStore().setItem(key, JSON.stringify(value));
       localStorage.removeItem(key);
     }
   } catch { /* optional storage */ }
@@ -3597,6 +3633,7 @@ async function loadSiteConfig() {
       widgetsBranded = cached.branded === true;
       trackedPages = cached.trackedPages || null;
       errorsAreOff(cached.errors);
+      keepWhatConfigNeeds(cached);
       return cached;
     }
   } catch { /* optional storage */ }
@@ -3621,8 +3658,7 @@ async function loadSiteConfig() {
     visitorFacts = visitor || {};
     widgetsBranded = config.branded;
     errorsAreOff(errors);
-    if (banner || consentRegions || surveys.length || leadforms.length || notices.length || experiments.length ||
-        [feedback, ...feedbacks, ...widgets].some((w) => w?.targeting?.audience)) keepForTab();
+    keepWhatConfigNeeds(config);
     try {
       tabStore().setItem(SURVEYS_KEY, JSON.stringify(config));
     } catch { /* optional storage */ }

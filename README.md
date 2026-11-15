@@ -12,11 +12,11 @@ The script SiteGoose customers put on their pages, as source and as every releas
 The install code carries `integrity="sha384-…"`. To see that the file served is this one:
 
 ```sh
-curl -s https://t.sitegoose.com/v1.0.88/track.js | openssl dgst -sha384 -binary | openssl base64 -A
+curl -s https://t.sitegoose.com/v1.0.89/track.js | openssl dgst -sha384 -binary | openssl base64 -A
 ```
 
-Compare with the hash for that version in `releases.json`, and with `releases/v1.0.88/track.js` here.
+Compare with the hash for that version in `releases.json`, and with `releases/v1.0.89/track.js` here.
 
 ## Reporting a problem
 
-See https://sitegoose.com/security. Latest release: v1.0.88.
+See https://sitegoose.com/security. Latest release: v1.0.89.

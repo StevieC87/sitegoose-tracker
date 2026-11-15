@@ -383,5 +383,10 @@
     "version": "1.0.88",
     "integrity": "sha384-jFL0/VsTdwTMhmARc6qKz3vDA1P4jDJFwA0OTFeyMw06qDpytCuR9auKfi9nldaM",
     "released_at": "2026-11-15T17:33:43.752Z"
+  },
+  {
+    "version": "1.0.89",
+    "integrity": "sha384-aqnuDn8VoLE7j7Ga2/5noPKzr2RU5cDHd9fpVgjISXKhgiWh3cjT/tNYLR4Saa4N",
+    "released_at": "2026-11-15T17:55:05.572Z"
   }
 ]
