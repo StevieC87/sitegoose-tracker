@@ -1603,6 +1603,13 @@ function watchLateScripts() {
 }
 watchLateScripts();
 
+// An element's selector for the dashboard to pin a finding to, or "" when it
+// is too long to send whole: one cut short can point at another element.
+const selectorOf = (el) => {
+  const selector = heatmapSelector(el);
+  return selector.length <= 300 ? selector : "";
+};
+
 function runA11yChecks(path) {
   let seen = [];
   try {
@@ -1613,7 +1620,10 @@ function runA11yChecks(path) {
   for (const [rule, check] of Object.entries(A11Y_CHECKS)) {
     try {
       const found = check().filter(Boolean);
-      if (found.length) issues.push({ rule, count: found.length, samples: found.slice(0, HEALTH_SAMPLE_MAX).map(describe) });
+      // Each sample with the element's path (the heatmap's selector), so the
+      // dashboard can point at it on the page's copy. No text either way.
+      const picked = found.slice(0, HEALTH_SAMPLE_MAX);
+      if (found.length) issues.push({ rule, count: found.length, samples: picked.map(describe), selectors: picked.map(selectorOf) });
     } catch { /* one check failing should not stop the rest */ }
   }
   // Sent with no issues too, so the report knows the page was checked.
@@ -2942,6 +2952,19 @@ let activating = Promise.resolve();
 const categoriesOf = (el) => (el.getAttribute("data-consent") || "").toLowerCase().split(/[\s,]+/)
   .filter(Boolean).map((name) => CATEGORY_ALIASES[name] || name);
 
+// A web address to load, or null. These tags are found anywhere on the page,
+// including in content the site let visitors post: a sanitizer that keeps
+// iframes and data-* attributes checks src but not data-src, so a
+// "javascript:" there would run in the site's origin once we copied it over.
+function loadableUrl(value) {
+  try {
+    const url = new URL(value || "", location.href);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function runConsentedTags() {
   activating = activating.then(async () => {
     const categories = readCategories();
@@ -2949,12 +2972,17 @@ function runConsentedTags() {
     for (const el of document.querySelectorAll(CONSENT_SELECTOR)) {
       const names = categoriesOf(el);
       if (!names.length || !names.every((name) => categories[name] === true)) continue;
-      for (const name of names) ranCategories.add(name);
       if (el.tagName === "IFRAME") {
-        el.setAttribute("src", el.getAttribute("data-src"));
+        const src = loadableUrl(el.getAttribute("data-src"));
         el.removeAttribute("data-src");
+        if (!src) continue;
+        for (const name of names) ranCategories.add(name);
+        el.setAttribute("src", src);
         continue;
       }
+      // A script's file only from a web address: never data:, blob: or javascript:.
+      if (el.hasAttribute("src") && !loadableUrl(el.getAttribute("src"))) continue;
+      for (const name of names) ranCategories.add(name);
       // A script only runs when it's a new element; data-type keeps a module's type.
       const script = document.createElement("script");
       for (const { name, value } of el.attributes) {
@@ -5167,7 +5195,15 @@ async function scheduleExperiments(path) {
 // too (named like form analytics names them), except login, search and
 // payment forms and forms inside data-analytics-ignore.
 const CAPTURE_SKIP_TYPES = new Set(["password", "file", "hidden", "submit", "button", "reset", "image"]);
-const CAPTURE_SKIP_NAMES = /pass|card|cc-|cvv|cvc|iban|ssn|token|captcha|csrf/i;
+const CAPTURE_SKIP_NAMES = /pass|card|cc-|cvv|cvc|iban|ssn|token|captcha|csrf|secret/i;
+// One-time codes, PINs and keys, matched as whole words of the name, id and
+// autocomplete (otpCode, otp_code and one-time-code all count), so "postcode",
+// "shipping" and "keywords" are still captured.
+const CAPTURE_SECRET_WORDS = /(^| )(otp|totp|hotp|mfa|2fa|pin|one time code|(recovery|backup|verification|security|auth|sms|2fa|mfa) codes?|(api|private|access|secret|license|licence) key)( |$)/;
+const captureWords = (el) => `${el.name || ""} ${el.id || ""} ${el.autocomplete || ""}`
+  .replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const isSecretField = (el) => CAPTURE_SKIP_NAMES.test(`${el.name} ${el.id} ${el.autocomplete || ""}`)
+  || CAPTURE_SECRET_WORDS.test(captureWords(el));
 
 function captureLabel(el) {
   const text = (value) => (value || "").replace(/\s+/g, " ").replace(/\s*\*$/, "").trim();
@@ -5186,6 +5222,8 @@ function autoCaptured(form) {
   if (form.closest("[data-analytics-ignore],[data-noanalytics]") || form.getAttribute("role") === "search") return false;
   if (form.querySelector("input[type=password],input[type=search],[autocomplete^=cc-],[autocomplete*=' cc-']")) return false;
   const inputs = [...form.elements].filter((el) => el.tagName !== "BUTTON" && !CAPTURE_SKIP_TYPES.has((el.type || "").toLowerCase()));
+  // A one-time code or a key makes it a sign-in or account form, like a password does.
+  if (inputs.some((el) => CAPTURE_SECRET_WORDS.test(captureWords(el)))) return false;
   // A lone q/s/search box is a site search without the markup.
   if (inputs.length === 1 && /^(q|s|search|query|keywords?)$/i.test(inputs[0].name || inputs[0].id)) return false;
   return capturedFields(form).length > 0;
@@ -5196,7 +5234,7 @@ function capturedFields(form) {
   for (const el of form.elements) {
     const type = (el.type || "").toLowerCase();
     if (el.disabled || CAPTURE_SKIP_TYPES.has(type) || el.closest("[data-analytics-ignore]")) continue;
-    if (CAPTURE_SKIP_NAMES.test(`${el.name} ${el.id} ${el.autocomplete || ""}`)) continue;
+    if (isSecretField(el)) continue;
     let value;
     if (type === "checkbox") {
       if (!el.checked) continue;

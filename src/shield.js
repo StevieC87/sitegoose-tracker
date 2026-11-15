@@ -1,6 +1,6 @@
 // Spam protection (sites that turn it on). Loaded by the tracker only then.
 // On the visitor's first interaction it fetches a challenge and finds the
-// number that answers it, in short slices so the page never stutters. The
+// number that answers it, in a Web Worker so the page never stutters. The
 // answer goes out with what the visitor did (typed, used a pointer, ticked
 // the box), whether the browser is automated, and whether a hidden trap field
 // was filled. Protected forms get the answer in a hidden "analytics-shield"
@@ -11,52 +11,118 @@
 // bots do); everyone else sees nothing.
 // Our own login and sign-up pages use a copy: frontend/src/lib/shield.js.
 
-// SHA-256 of a short ASCII text (one block), first 32 bits only: all the
-// proof of work needs.
-const K = new Uint32Array([
-  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-]);
-const W = new Uint32Array(64);
-const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+// Everything the proof of work needs, in one self-contained function (no
+// names from outside it), as it is also the Web Worker's source: as text,
+// `(${powKernel})()`. Called on the page it only returns its helpers.
+function powKernel() {
+  // SHA-256 of a short ASCII text (one block), first 32 bits only: all the
+  // proof of work needs.
+  const K = new Uint32Array([
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+  ]);
+  const W = new Uint32Array(64);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
 
-export function sha256FirstWord(text) {
-  W.fill(0, 0, 16);
-  for (let i = 0; i < text.length; i++) W[i >> 2] |= text.charCodeAt(i) << (24 - (i & 3) * 8);
-  W[text.length >> 2] |= 0x80 << (24 - (text.length & 3) * 8);
-  W[15] = text.length * 8;
-  for (let i = 16; i < 64; i++) {
-    const x = W[i - 15];
-    const y = W[i - 2];
-    W[i] = (W[i - 16] + (rotr(x, 7) ^ rotr(x, 18) ^ (x >>> 3)) + W[i - 7] + (rotr(y, 17) ^ rotr(y, 19) ^ (y >>> 10))) | 0;
+  function sha256FirstWord(text) {
+    W.fill(0, 0, 16);
+    for (let i = 0; i < text.length; i++) W[i >> 2] |= text.charCodeAt(i) << (24 - (i & 3) * 8);
+    W[text.length >> 2] |= 0x80 << (24 - (text.length & 3) * 8);
+    W[15] = text.length * 8;
+    for (let i = 16; i < 64; i++) {
+      const x = W[i - 15];
+      const y = W[i - 2];
+      W[i] = (W[i - 16] + (rotr(x, 7) ^ rotr(x, 18) ^ (x >>> 3)) + W[i - 7] + (rotr(y, 17) ^ rotr(y, 19) ^ (y >>> 10))) | 0;
+    }
+    let a = 0x6a09e667, b = 0xbb67ae85, c = 0x3c6ef372, d = 0xa54ff53a;
+    let e = 0x510e527f, f = 0x9b05688c, g = 0x1f83d9ab, h = 0x5be0cd19;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
+      const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0;
+      d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    return (a + 0x6a09e667) >>> 0;
   }
-  let a = 0x6a09e667, b = 0xbb67ae85, c = 0x3c6ef372, d = 0xa54ff53a;
-  let e = 0x510e527f, f = 0x9b05688c, g = 0x1f83d9ab, h = 0x5be0cd19;
-  for (let i = 0; i < 64; i++) {
-    const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
-    const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
-    h = g; g = f; f = e; e = (d + t1) | 0;
-    d = c; c = b; b = a; a = (t1 + t2) | 0;
+
+  // Tries numbers from `from` on: { found } for the answer, or { next } once
+  // stop() says the time is up (asked every 512 tries).
+  function search(nonce, shift, from, stop) {
+    for (let x = from; ; x++) {
+      if (sha256FirstWord(`${nonce}:${x}`) >>> shift === 0) return { found: String(x) };
+      if ((x & 511) === 511 && stop()) return { next: x + 1 };
+    }
   }
-  return (a + 0x6a09e667) >>> 0;
+
+  if (typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope) {
+    self.onmessage = (event) => self.postMessage(search(event.data.nonce, event.data.shift, 0, () => false).found);
+  }
+  return { sha256FirstWord, search };
 }
 
-const SLICE = 20000;
+const kernel = powKernel();
+export const sha256FirstWord = kernel.sha256FirstWord;
+
+// In a Web Worker, so the page never waits on it: the speed test counted the
+// main-thread version as seconds of blocking time on our login page. A page
+// whose Content-Security-Policy refuses blob: workers (or a browser without
+// workers) gets the page version, in slices short enough not to block.
+let workerUrl = null;
+function solveInWorker(nonce, shift) {
+  return new Promise((resolve, reject) => {
+    let worker;
+    try {
+      workerUrl ||= URL.createObjectURL(new Blob([`(${powKernel})()`], { type: "text/javascript" }));
+      worker = new Worker(workerUrl);
+    } catch (error) {
+      reject(error);
+      return;
+    }
+    worker.onmessage = (event) => {
+      worker.terminate();
+      resolve(event.data);
+    };
+    worker.onerror = (event) => {
+      event.preventDefault?.();
+      worker.terminate();
+      reject(new Error("worker"));
+    };
+    worker.postMessage({ nonce, shift });
+  });
+}
+
+const SLICE_MS = 8;
 const pause = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+async function solveOnPage(nonce, shift) {
+  for (let from = 0; ;) {
+    const until = performance.now() + SLICE_MS;
+    const step = kernel.search(nonce, shift, from, () => performance.now() >= until);
+    if (step.found) return step.found;
+    from = step.next;
+    await pause();
+  }
+}
+
+let workers = typeof Worker !== "undefined" && typeof Blob !== "undefined" && typeof URL?.createObjectURL === "function";
 async function solve(challenge, bits) {
   const nonce = JSON.parse(atob(challenge.split(".")[0].replace(/-/g, "+").replace(/_/g, "/"))).n;
   const shift = 32 - bits;
-  for (let x = 0; ; x++) {
-    if (sha256FirstWord(`${nonce}:${x}`) >>> shift === 0) return String(x);
-    if (x % SLICE === SLICE - 1) await pause();
+  if (workers) {
+    try {
+      return await solveInWorker(nonce, shift);
+    } catch {
+      // Refused once, refused every time on this page.
+      workers = false;
+    }
   }
+  return solveOnPage(nonce, shift);
 }
 
 // The server refuses answers sent sooner than this after the challenge

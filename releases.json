@@ -368,5 +368,15 @@
     "version": "1.0.85",
     "integrity": "sha384-nDanHQwWmMQTTuyxu4qGJPOKTNkUNBK/Gd/Qe2P+V1nzLtYYpxA4orMdnO9riVoL",
     "released_at": "2026-11-13T14:52:36.335Z"
+  },
+  {
+    "version": "1.0.86",
+    "integrity": "sha384-UBAeSRvtGvzuUiX6Guf18oREEb3YHHq3IpVfRTXaHkQ/geFVdK2StLENFyVwvJr+",
+    "released_at": "2026-11-13T17:56:43.772Z"
+  },
+  {
+    "version": "1.0.87",
+    "integrity": "sha384-xT/t5BIOv2Zo7jv0noI8eC3GjXRTca3MfdMA1tY2S/OYHnUXvgV/2RFQA4Xvznm/",
+    "released_at": "2026-11-15T13:09:37.633Z"
   }
 ]
