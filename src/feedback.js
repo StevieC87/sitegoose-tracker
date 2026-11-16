@@ -117,8 +117,15 @@ const cleanFont = (raw) => {
   const font = raw.replace(/[{};<>\\/\n\r]/g, "").slice(0, 300).trim();
   return font.split('"').length % 2 && font.split("'").length % 2 ? font : "";
 };
+// The owner's own class names for this widget (look.css_class), put on the
+// host beside data-sg-widget so the site's CSS can single one widget out. Only
+// plain class names, at most five (shared/cssClass.js in the backend); anything
+// else is skipped rather than reaching the page.
+const CLASS_NAME = /^-?[A-Za-z_][A-Za-z0-9_-]{0,39}$/;
+const siteClasses = (value) => (typeof value === "string" ? value.trim().split(/\s+/).filter((name) => CLASS_NAME.test(name)).slice(0, 5) : []);
 const followLook = (kind, host, root, look, draw) => {
   host.setAttribute("data-sg-widget", kind);
+  for (const name of siteClasses(look.css_class)) host.classList.add(name);
   const probe = document.createElement("i");
   probe.hidden = true;
   root.append(probe);

@@ -252,8 +252,12 @@ export function createShield({ mode, fetchChallenge, session = () => "" }) {
     const host = document.createElement("div");
     host.setAttribute("data-noanalytics", "");
     host.setAttribute("data-analytics-ignore", "");
+    // The site's CSS reaches the box as [data-sg-widget="shield"]::part(box);
+    // a promise to every site that uses it, like the other widgets' names.
+    host.setAttribute("data-sg-widget", "shield");
     const root = host.attachShadow({ mode: "open" });
     const label = document.createElement("label");
+    label.setAttribute("part", "box");
     const input = document.createElement("input");
     input.type = "checkbox";
     const spin = document.createElement("span");

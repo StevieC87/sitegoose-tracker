@@ -15,6 +15,10 @@
 // off as "direct". The click itself is sent as a "share" event, which is how
 // a share that nobody follows is still counted.
 //
+// The ::part() names box (the row) and button are a promise to every site that
+// styles them: never rename one. The element is the site's own, so its own
+// class names are how a site singles one row out.
+//
 // renderShareButtons(host, options, hooks) -> remove()
 //   options: { platforms, url, title, label }
 //   hooks:   { shared(platform, link) }
@@ -114,12 +118,13 @@ export function renderShareButtons(host, options = {}, hooks = {}) {
 
   const root = host.attachShadow ? host.attachShadow({ mode: "open" }) : host;
   root.append(el("style", { text: `:host { all: initial; } ${CSS}` }));
-  const row = el("div", { class: "sb", role: "group", "aria-label": "Share this" });
+  const row = el("div", { class: "sb", part: "box", role: "group", "aria-label": "Share this" });
 
   for (const key of platforms) {
     const platform = PLATFORMS[key];
     const button = el("button", {
       type: "button",
+      part: "button",
       "aria-label": key === "copy" ? "Copy link" : `Share on ${platform.name}`,
       text: platform.name,
     });

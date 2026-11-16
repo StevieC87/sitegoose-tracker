@@ -1,12 +1,20 @@
 // Cookie banner. Loaded by the tracker only for visitors who haven't answered
 // on sites that turn it on. Renders inside a shadow root, so the site's CSS
-// can't change it. Each button can use its own background and text colors.
+// reaches it only through the host (#analytics-consent-banner, also
+// [data-sg-widget="banner"] and the owner's own class names) and the ::part()
+// names box, text and button. Those names are a promise to every site that
+// uses them, as in the other widgets: never rename one. Each button can use
+// its own background and text colors.
 // The dashboard's "Copy code" version (cookieBannerCode.js) uses the same CSS.
 // Sites that list other categories (functional, marketing) also get a
 // Customize view with a switch for each.
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const color = (value, fallback) => (HEX.test(value || "") ? value : fallback);
+// The owner's class names (cssClass), checked as followLook checks them in the
+// other widgets (and backend shared/cssClass.js): plain class names, at most five.
+const CLASS_NAME = /^-?[A-Za-z_][A-Za-z0-9_-]{0,39}$/;
+const siteClasses = (value) => (typeof value === "string" ? value.trim().split(/\s+/).filter((name) => CLASS_NAME.test(name)).slice(0, 5) : []);
 
 const css = (b) => `
   :host { all: initial; }
@@ -95,16 +103,18 @@ export function renderBanner(b, answer, current = null, consentId = "") {
   const offered = OPTIONAL.filter((name) => Array.isArray(b.categories) && b.categories.includes(name));
   const host = document.createElement("div");
   host.id = "analytics-consent-banner";
+  host.setAttribute("data-sg-widget", "banner");
+  for (const name of siteClasses(b.cssClass)) host.classList.add(name);
   const root = host.attachShadow({ mode: "open" });
-  root.innerHTML = `<div class="cb ${b.position === "corner" ? "cb-corner" : "cb-bar"}" role="dialog" aria-label="Cookie consent">
-      <p></p>
+  root.innerHTML = `<div class="cb ${b.position === "corner" ? "cb-corner" : "cb-bar"}" part="box" role="dialog" aria-label="Cookie consent">
+      <p part="text"></p>
       <ul class="cb-list" hidden></ul>
       <p class="cb-id" hidden></p>
       <div class="cb-buttons">
-        <button type="button" class="cb-link" data-cb="customize" hidden></button>
-        <button type="button" data-cb="decline"></button>
-        <button type="button" data-cb="save" hidden></button>
-        <button type="button" data-cb="accept"></button>
+        <button type="button" class="cb-link" part="button" data-cb="customize" hidden></button>
+        <button type="button" part="button" data-cb="decline"></button>
+        <button type="button" part="button" data-cb="save" hidden></button>
+        <button type="button" part="button" data-cb="accept"></button>
       </div>
     </div>`;
   styleBanner(root, css(b));

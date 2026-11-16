@@ -104,8 +104,15 @@ const cleanFont = (raw) => {
   const font = raw.replace(/[{};<>\\/\n\r]/g, "").slice(0, 300).trim();
   return font.split('"').length % 2 && font.split("'").length % 2 ? font : "";
 };
+// The owner's own class names for this widget (look.css_class), put on the
+// host beside data-sg-widget so the site's CSS can single one widget out. Only
+// plain class names, at most five (shared/cssClass.js in the backend); anything
+// else is skipped rather than reaching the page.
+const CLASS_NAME = /^-?[A-Za-z_][A-Za-z0-9_-]{0,39}$/;
+const siteClasses = (value) => (typeof value === "string" ? value.trim().split(/\s+/).filter((name) => CLASS_NAME.test(name)).slice(0, 5) : []);
 const followLook = (kind, host, root, look, draw) => {
   host.setAttribute("data-sg-widget", kind);
+  for (const name of siteClasses(look.css_class)) host.classList.add(name);
   const probe = document.createElement("i");
   probe.hidden = true;
   root.append(probe);
@@ -695,6 +702,9 @@ export function renderLeadForm(form, mount, callbacks) {
   const sums = new Map();
   // Each field's caption, so its star can follow what is required right now.
   const caps = new Map();
+  // A form that asks one thing (a newsletter's email) shows no star: there is
+  // nothing else for it to be told apart from. It is still required.
+  const starred = fields.filter((f) => !f.compute).length > 1;
   const rows = fields.map((f) => {
     // `control` is what the value is read from and the error is put on; `wrap`
     // is what is drawn, when the control needs company (a reading, buttons).
@@ -936,7 +946,7 @@ export function renderLeadForm(form, mount, callbacks) {
     rows.forEach((row, i) => { row.hidden = !steps[step].includes(i) || !visible.has(fields[i].id); });
     for (const f of fields) {
       const caption = caps.get(f.id);
-      if (caption) caption.textContent = f.label + (sends && required.has(f.id) ? " *" : "");
+      if (caption) caption.textContent = f.label + (sends && starred && required.has(f.id) ? " *" : "");
       // The browser's own prompt follows too, for a field required only on an
       // answer. A group's control is a div, which has no such property.
       const control = controls.get(f.id);

@@ -4625,7 +4625,8 @@ const EXPERIMENT_EDIT_KEY = `analytics:abedit:${siteid}`;
 const EDIT_HEALTH_KEY = `analytics:edithealth:${siteid}`;
 // The open live editor, kept across a single-page app's pages.
 let experimentEditor = null;
-// A picking link (?ev_pick=<token>, from the dashboard's Events page) loads
+// A picking link (?ev_pick=<token>, also sent as #ev_pick=<token> because a
+// redirect on the site keeps the fragment but often drops the query, from the dashboard's Events page) loads
 // picker.js instead, to pick an element whose clicks become an event.
 const EVENT_PICK_KEY = `analytics:evpick:${siteid}`;
 let eventPicker = null;
@@ -4787,7 +4788,8 @@ async function eventPickLink() {
   try {
     stored = JSON.parse(sessionStorage.getItem(EVENT_PICK_KEY) || "null");
   } catch { /* optional storage */ }
-  const token = new URLSearchParams(location.search).get("ev_pick") || "";
+  const token = new URLSearchParams(location.search).get("ev_pick")
+    || new URLSearchParams(location.hash.slice(1)).get("ev_pick") || "";
   const wanted = /^[0-9a-f]{24}$/.test(token) ? { token } : stored;
   if (!wanted) return null;
   if (stored?.data && stored.token === wanted.token) return stored;
@@ -4819,6 +4821,7 @@ function leaveEventPicker() {
   } catch { /* optional storage */ }
   const url = new URL(location.href);
   url.searchParams.delete("ev_pick");
+  if (new URLSearchParams(url.hash.slice(1)).has("ev_pick")) url.hash = "";
   location.replace(url.href);
 }
 

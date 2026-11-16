@@ -29,8 +29,9 @@ const el = (tag, attrs = {}, children = []) => {
 };
 
 // Inherits the page's type and colour; only what the widget draws itself is set.
-function shadowHost(mount, css) {
-  const host = el("div", { "data-noanalytics": "" });
+// `kind` is its data-sg-widget value, a name the site's CSS can rely on.
+function shadowHost(mount, kind, css) {
+  const host = el("div", { "data-noanalytics": "", "data-sg-widget": kind });
   const root = host.attachShadow({ mode: "open" });
   root.append(el("style", {
     text: `:host { display: block; font: inherit; color: inherit; line-height: inherit; }
@@ -61,6 +62,8 @@ const STATES = {
 const barColor = (uptime, ok, bad, blank) => (uptime === null || uptime === undefined ? blank
   : uptime >= 99.9 ? ok : uptime >= 95 ? "#f59e0b" : bad);
 
+// The ::part() names box and label are a promise to every site that styles
+// them: never rename one.
 export function renderStatusBadge(mount, widget, status) {
   const look = widget.look || {};
   const size = ["text", "pill", "bars"].includes(look.size) ? look.size : "pill";
@@ -70,7 +73,7 @@ export function renderStatusBadge(mount, widget, status) {
   const uptime = typeof status?.uptime === "number" ? status.uptime : null;
   const days = Array.isArray(status?.days) ? status.days : [];
 
-  const { host, root } = shadowHost(mount, `
+  const { host, root } = shadowHost(mount, "status", `
     .wrap { display: inline-flex; flex-direction: column; gap: 8px; max-width: 100%; }
     .row { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
     .pill { box-sizing: border-box; padding: 7px 12px; border: 1px solid ${t.border}; border-radius: 999px; background: ${t.surface}; }
@@ -87,7 +90,7 @@ export function renderStatusBadge(mount, widget, status) {
   `);
 
   const link = safeUrl(status?.status_url);
-  const label = el("span", { class: "label", text: state.label });
+  const label = el("span", { class: "label", part: "label", text: state.label });
   const parts = [el("span", { class: `dot${status?.status === "up" ? " live" : ""}`, "aria-hidden": "true" }), label];
   if (size !== "text" && uptime !== null) parts.push(el("span", { class: "pct", text: `${uptime.toFixed(2)}%` }));
 
@@ -111,7 +114,7 @@ export function renderStatusBadge(mount, widget, status) {
 
   // One announcement for screen readers, rather than each piece being read.
   root.append(el("div", {
-    class: "wrap", role: "status",
+    class: "wrap", part: "box", role: "status",
     "aria-label": uptime === null ? state.label
       : days.length ? `${state.label}. ${uptime.toFixed(2)}% uptime over the last ${days.length} days.`
         : `${state.label}. ${uptime.toFixed(2)}% uptime.`,
@@ -153,7 +156,7 @@ export function renderTestimonials(mount, widget, feed) {
   if (!items.length) return null;
   const accent = color(look.accent, "currentColor");
 
-  const { host, root } = shadowHost(mount, `
+  const { host, root } = shadowHost(mount, "testimonials", `
     .wall { columns: 280px; column-gap: 16px; }
     .wall .quote { break-inside: avoid; margin: 0 0 16px; }
     .list { display: flex; flex-direction: column; gap: 16px; }
