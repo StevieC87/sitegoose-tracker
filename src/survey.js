@@ -234,6 +234,25 @@ const credit = () => el("p", { class: "credit" }, [
   el("a", { href: "https://sitegoose.com/?utm_source=powered-by&utm_medium=widget", target: "_blank", rel: "noopener", text: "Powered by SiteGoose" }),
 ]);
 
+// The shadow root's styles as a constructed sheet, which a site's
+// Content-Security-Policy style-src doesn't block (a <style> here would be,
+// leaving everything unstyled); a <style> where that isn't supported. Either
+// way, set .textContent to restyle.
+function shadowStyle(root, text = "") {
+  try {
+    if (!(root instanceof ShadowRoot)) throw new Error("no shadow root");
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(text);
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    return { set textContent(value) { sheet.replaceSync(value); } };
+  } catch {
+    const style = document.createElement("style");
+    style.textContent = text;
+    root.append(style);
+    return style;
+  }
+}
+
 // The question a rule sends this answer to ("end" finishes), or null for the
 // next one. Rules only point ahead, so a survey can't loop.
 function branchOf(q, value) {
@@ -262,8 +281,7 @@ export function renderSurvey(survey, callbacks, mount = null) {
   const host = document.createElement("div");
   host.setAttribute("data-noanalytics", "");
   const root = host.attachShadow({ mode: "open" });
-  const style = el("style");
-  root.append(style);
+  const style = shadowStyle(root);
   const site = followLook("survey", host, root, look, (seen, font) => {
     // Six digits only: the CSS appends a two-digit alpha to it.
     const color = /^#[0-9a-f]{6}$/i.test(seen.color || "") ? seen.color : "#2563eb";

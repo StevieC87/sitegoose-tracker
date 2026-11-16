@@ -28,15 +28,32 @@ const el = (tag, attrs = {}, children = []) => {
   return node;
 };
 
+// The shadow root's styles as a constructed sheet, which a site's
+// Content-Security-Policy style-src doesn't block (a <style> here would be,
+// leaving everything unstyled); a <style> where that isn't supported. Either
+// way, set .textContent to restyle.
+function shadowStyle(root, text = "") {
+  try {
+    if (!(root instanceof ShadowRoot)) throw new Error("no shadow root");
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(text);
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    return { set textContent(value) { sheet.replaceSync(value); } };
+  } catch {
+    const style = document.createElement("style");
+    style.textContent = text;
+    root.append(style);
+    return style;
+  }
+}
+
 // Inherits the page's type and colour; only what the widget draws itself is set.
 // `kind` is its data-sg-widget value, a name the site's CSS can rely on.
 function shadowHost(mount, kind, css) {
   const host = el("div", { "data-noanalytics": "", "data-sg-widget": kind });
   const root = host.attachShadow({ mode: "open" });
-  root.append(el("style", {
-    text: `:host { display: block; font: inherit; color: inherit; line-height: inherit; }
-      [hidden] { display: none !important; } ${css}`,
-  }));
+  shadowStyle(root, `:host { display: block; font: inherit; color: inherit; line-height: inherit; }
+      [hidden] { display: none !important; } ${css}`);
   mount.append(host);
   return { host, root };
 }

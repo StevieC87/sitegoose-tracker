@@ -167,14 +167,32 @@ const el = (tag, attrs = {}, children = []) => {
   return node;
 };
 
+// The shadow root's styles as a constructed sheet, which a site's
+// Content-Security-Policy style-src doesn't block (a <style> here would be,
+// leaving everything unstyled); a <style> where that isn't supported. Either
+// way, set .textContent to restyle.
+function shadowStyle(root, text = "") {
+  try {
+    if (!(root instanceof ShadowRoot)) throw new Error("no shadow root");
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(text);
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    return { set textContent(value) { sheet.replaceSync(value); } };
+  } catch {
+    const style = document.createElement("style");
+    style.textContent = text;
+    root.append(style);
+    return style;
+  }
+}
+
 // css(look, font) is drawn again whenever the site's mode or its own CSS
 // properties change (followLook); site.update() once the host is on the page.
 function shadowHost(look, css) {
   const host = document.createElement("div");
   host.setAttribute("data-noanalytics", "");
   const root = host.attachShadow({ mode: "open" });
-  const style = el("style");
-  root.append(style);
+  const style = shadowStyle(root);
   const site = followLook("notice", host, root, look, (seen, font) => {
     style.textContent = `:host { all: initial; } [hidden] { display: none !important; } ${css(seen, font)}`;
   });

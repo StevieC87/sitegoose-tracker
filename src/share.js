@@ -57,6 +57,25 @@ export const cleanTag = (value) => String(value ?? "").trim().toLowerCase()
 // Ad click IDs: they name the click that brought this visitor, not a share.
 const CLICK_IDS = ["gclid", "gbraid", "wbraid", "dclid", "fbclid", "msclkid", "ttclid", "twclid", "li_fat_id", "yclid", "igshid", "mc_cid", "mc_eid", "_gl"];
 
+// The shadow root's styles as a constructed sheet, which a site's
+// Content-Security-Policy style-src doesn't block (a <style> here would be,
+// leaving everything unstyled); a <style> where that isn't supported. Either
+// way, set .textContent to restyle.
+function shadowStyle(root, text = "") {
+  try {
+    if (!(root instanceof ShadowRoot)) throw new Error("no shadow root");
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(text);
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    return { set textContent(value) { sheet.replaceSync(value); } };
+  } catch {
+    const style = document.createElement("style");
+    style.textContent = text;
+    root.append(style);
+    return style;
+  }
+}
+
 // The address to share, tagged so the visits it brings back are attributed.
 // Tags already on an address the site gave are left alone: the site meant
 // them. On the page's own address they are how this visitor arrived (often
@@ -117,7 +136,7 @@ export function renderShareButtons(host, options = {}, hooks = {}) {
   const label = options.label || options.url || "";
 
   const root = host.attachShadow ? host.attachShadow({ mode: "open" }) : host;
-  root.append(el("style", { text: `:host { all: initial; } ${CSS}` }));
+  shadowStyle(root, `:host { all: initial; } ${CSS}`);
   const row = el("div", { class: "sb", part: "box", role: "group", "aria-label": "Share this" });
 
   for (const key of platforms) {

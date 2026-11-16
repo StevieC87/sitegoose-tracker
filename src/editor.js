@@ -348,7 +348,15 @@ const ACTION_LABELS = { text: "Text", html: "Text", classes: "Classes", attr: "A
 export function startEditor({ token, variant: startVariant, dashboardOrigin, experiment, focus, onExit }) {
   const host = el("div", { "data-noanalytics": "", "data-analytics-editor": "" });
   const root = host.attachShadow({ mode: "open" });
-  root.append(el("style", { text: CSS_TEXT }));
+  // A constructed sheet, which a site's Content-Security-Policy style-src doesn't
+  // block; a <style> here would be, leaving the panel unstyled at the page's foot.
+  try {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(CSS_TEXT);
+    root.adoptedStyleSheets = [sheet];
+  } catch {
+    root.append(el("style", { text: CSS_TEXT }));
+  }
   document.documentElement.append(host);
   const page = createPage(host);
 

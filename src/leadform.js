@@ -381,6 +381,25 @@ const progressOf = (shown, step) => ({ at: shown.indexOf(step) + 1, of: shown.le
 // on a touch screen, whose keyboard has no Shift for a new line.
 const enterMovesOn = (single, coarse, shift) => single && !coarse && !shift;
 
+// The shadow root's styles as a constructed sheet, which a site's
+// Content-Security-Policy style-src doesn't block (a <style> here would be,
+// leaving everything unstyled); a <style> where that isn't supported. Either
+// way, set .textContent to restyle.
+function shadowStyle(root, text = "") {
+  try {
+    if (!(root instanceof ShadowRoot)) throw new Error("no shadow root");
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(text);
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    return { set textContent(value) { sheet.replaceSync(value); } };
+  } catch {
+    const style = document.createElement("style");
+    style.textContent = text;
+    root.append(style);
+    return style;
+  }
+}
+
 // What a field's answer counts as when a condition looks at it: the values
 // chosen, empty when it wasn't answered. Only a tick-box group has several.
 // This reads what was posted, not a checked value, because visibility has to
@@ -614,8 +633,7 @@ export function renderLeadForm(form, mount, callbacks) {
   const host = document.createElement("div");
   host.setAttribute("data-noanalytics", "");
   const root = host.attachShadow({ mode: "open" });
-  const style = el("style");
-  root.append(style);
+  const style = shadowStyle(root);
   // The site's --sg-font comes before the look's own choice of font.
   const pageFont = (l.font === "site" && siteFont(mount || document.body)) || SYSTEM_FONT;
   const site = followLook("leadform", host, root, look, (seen, font) => {
@@ -1203,8 +1221,7 @@ export function renderLauncher(form, onOpen) {
   const host = document.createElement("div");
   host.setAttribute("data-noanalytics", "");
   const root = host.attachShadow({ mode: "open" });
-  const style = el("style");
-  root.append(style);
+  const style = shadowStyle(root);
   // The button is the accent and the font only; the rest of the look is the form's.
   const site = followLook("leadform", host, root, form.look || {}, (seen, font) => {
     const color = accentOf(seen);

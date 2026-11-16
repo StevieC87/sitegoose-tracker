@@ -93,7 +93,15 @@ li { padding: 6px 8px; border-radius: 7px; background: #f8fafc; }
 export function startPicker({ token, dashboardOrigin, onExit }) {
   const host = el("div", { "data-noanalytics": "", "data-analytics-editor": "" });
   const root = host.attachShadow({ mode: "open" });
-  root.append(el("style", { text: CSS_TEXT }));
+  // A constructed sheet, which a site's Content-Security-Policy style-src doesn't
+  // block; a <style> here would be, leaving the panel unstyled at the page's foot.
+  try {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(CSS_TEXT);
+    root.adoptedStyleSheets = [sheet];
+  } catch {
+    root.append(el("style", { text: CSS_TEXT }));
+  }
   document.documentElement.append(host);
 
   const state = {
