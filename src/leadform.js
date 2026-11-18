@@ -231,6 +231,16 @@ const css = (color, s, mode, l, font) => {
   .prog i { display: block; height: 100%; width: 0; background: ${color}; transition: width .25s; }
   .btn { margin-left: auto; border: 0; border-radius: ${buttonRadius}px; padding: 10px 16px; cursor: pointer; font: inherit; font-weight: 600; background: ${color}; color: #fff; text-decoration: none; display: inline-block; }
   ${l.button === "full" ? ".foot .btn { flex: 1; margin-left: 0; text-align: center; }" : ""}
+  /* The button beside a lone box to type in: the box and the button share a
+     row, the rest (consent, errors) go full width under them. */
+  form.beside { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+  form.beside > * { flex: 1 1 100%; order: 3; }
+  form.beside > .prog { order: 0; }
+  form.beside > .qs { flex: 1 1 12em; order: 1; min-width: 0; }
+  form.beside > .foot { flex: 0 0 auto; order: 2; }
+  /* The question kept for screen readers, its box showing it instead. */
+  .in > .q { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  ${l.box === "none" && mode === "inline" ? ".box { padding: 0; border: 0; border-radius: 0; background: transparent; }" : ""}
   .btn[disabled] { opacity: .5; cursor: default; }
   /* One question at a time: the question is the page. */
   .single .q { font-size: 19px; font-weight: 700; line-height: 1.3; }
@@ -307,6 +317,9 @@ const credit = () => el("p", { class: "credit" }, [
 
 const INPUT_TYPES = { email: "email", phone: "tel", name: "text", text: "text", number: "number", date: "date", url: "url" };
 const AUTOCOMPLETE = { email: "email", phone: "tel", name: "name", url: "url" };
+// A field drawn as one box to type in: what a button can sit beside. Keep in
+// step with oneLine in the builder's leadsShared.js.
+const oneLine = (f) => Boolean(INPUT_TYPES[f.type]) && !f.compute && !["slider", "stepper"].includes(f.control);
 // Radio buttons and tick boxes: one control per option, not one per field.
 const GROUP_TYPES = ["radio", "multi"];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -355,7 +368,12 @@ const LOOKS = {
   // Space inside the box, and between the questions.
   density: { normal: [20, 12], compact: [14, 8], roomy: [28, 18] },
   choices: { plain: 0, cards: 1 },
-  button: { auto: 0, full: 1 },
+  // "beside": next to the answer, when the form is one box to type in.
+  button: { auto: 0, full: 1, beside: 2 },
+  // "none": a form on the page with no frame of its own (popups keep theirs).
+  box: { card: 0, none: 1 },
+  // "inside": a box you type in shows its question as its placeholder.
+  labels: { above: 0, inside: 1 },
 };
 const lookOf = (look) => Object.fromEntries(Object.entries(LOOKS).map(([key, values]) => {
   const names = Object.keys(values);
@@ -825,9 +843,14 @@ export function renderLeadForm(form, mount, callbacks) {
     caps.set(f.id, caption);
     // A group's options are each their own label, so the field's name can't be
     // one too: clicking it would tick the first option.
+    // Inside the box: a box you type in shows the question as its
+    // placeholder (its own placeholder, if it has one, says it better).
+    const inside = l.labels === "inside" && !grouped
+      && (control.tagName === "TEXTAREA" || (control.tagName === "INPUT" && !["range", "date"].includes(control.type)));
+    if (inside) control.placeholder = f.placeholder || f.label;
     return grouped
       ? el("div", { class: "field" }, [caption, wrap || control])
-      : el("label", { part: "label" }, [caption, wrap || control]);
+      : el("label", { part: "label", class: inside ? "in" : undefined }, [caption, wrap || control]);
   });
   const consent = sends && form.consent ? el("input", { type: "checkbox", name: "consent" }) : null;
   const consentRow = consent ? el("label", { class: "check", part: "label" }, [consent, el("span", { text: form.consent })]) : null;
@@ -1107,12 +1130,18 @@ export function renderLeadForm(form, mount, callbacks) {
   });
 
   questions.append(...rows);
+  // The button beside the answer only where there is one line to fill in.
+  if (l.button === "beside" && sends && steps.length === 1 && fields.length === 1 && oneLine(fields[0])) formEl.classList.add("beside");
   formEl.append(progress, questions, ...(consentRow ? [consentRow] : []), ...(robotBox ? [robotBox] : []), el("div", { class: "hp", "aria-hidden": "true" }, [honeypot]), error,
     ...(sends ? [el("div", { class: "foot" }, [back, send])] : []));
 
-  const head = el("div", { class: "head" }, [el("p", { class: "title", part: "title", id: "t", text: form.title || "" })]);
-  if (!mount) head.append(el("button", { class: "x", type: "button", "aria-label": DEFAULTS.close, title: DEFAULTS.close, text: "✕", onclick: close }));
-  main.append(head);
+  // A form on the page with no title starts with its fields; a popup keeps
+  // its close button (and the empty title its dialog is labelled by).
+  if (form.title || !mount) {
+    const head = el("div", { class: "head" }, [el("p", { class: "title", part: "title", id: "t", text: form.title || "" })]);
+    if (!mount) head.append(el("button", { class: "x", type: "button", "aria-label": DEFAULTS.close, title: DEFAULTS.close, text: "✕", onclick: close }));
+    main.append(head);
+  }
   if (form.description) main.append(el("p", { class: "desc", text: form.description }));
   main.append(formEl);
   // An answer can decide what else is on show, so the step is redrawn as they
